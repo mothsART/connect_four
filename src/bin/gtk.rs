@@ -1,3 +1,5 @@
+// https://gtk.developpez.com/faq/?page=GdkPixbuf#GDKPIXBUF_acces_donnees
+
 extern crate cairo;
 extern crate gtk;
 extern crate gdk;
@@ -12,7 +14,7 @@ fn main() {
         println!("Failed to initialize GTK.");
         return;
     }
-let window = gtk::Window::new(gtk::WindowType::Toplevel);
+    let window = gtk::Window::new(gtk::WindowType::Toplevel);
     let drawing_area = Box::new(DrawingArea::new)();
     window.set_title("Connect");
     window.set_default_size(800, 600);

@@ -5,15 +5,25 @@ extern crate env_logger;
 extern crate serde;
 #[macro_use] extern crate serde_json;
 #[macro_use] extern crate serde_derive;
+extern crate diesel;
+extern crate connect_four;
+extern crate uuid;
 
 use std::fs::OpenOptions;
 use std::cell::RefCell;
 use std::rc::Rc;
-use std::collections::HashSet;
-
+use std::collections::HashMap;
 use serde_json::Value as Json;
 
-const ADDR: &'static str = "127.0.0.1:3012";
+use diesel::*;
+use diesel::sqlite::SqliteConnection;
+use connect_four::{establish_connection, ADDR, PORT};
+use connect_four::grid::{win, Grid};
+use connect_four::models::{User, NewUser, GameInProgress, NewGameInProgress};
+use connect_four::schema::users::dsl::users;
+use connect_four::schema::game_in_progress::dsl::game_in_progress;
+use uuid::Uuid;
+
 const SAVE: ws::util::Token = ws::util::Token(1);
 const PING: ws::util::Token = ws::util::Token(2);
 const FILE: &'static str = "message_log";
@@ -21,7 +31,8 @@ const SAVE_TIME: u64 = 500;
 const PING_TIME: u64 = 10_000;
 
 type MessageLog = Rc<RefCell<Vec<LogMessage>>>;
-type Users = Rc<RefCell<HashSet<String>>>;
+type Users      = Rc<RefCell<HashMap<u32, WSUser>>>;
+type Senders    = Rc<RefCell<HashMap<i32, ws::Sender>>>;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct Wrapper {
@@ -37,7 +48,28 @@ struct Message {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct Join {
-    join_nick: String,
+    join_nick: String
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Hash, Eq, PartialEq)]
+struct WSUser {
+    name:    Option<String>,
+    play_on: Option<i32>,
+    color:   DiscColor
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+struct Play {
+    id: i32,
+    disc_x: i32,
+    disc_y: i32
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Hash, Eq, PartialEq)]
+enum DiscColor {
+    None   = 0,
+    Yellow = 1,
+    Red    = 2
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -66,13 +98,135 @@ impl Message {
     }
 }
 
+pub struct ConnectFourDataBaseStruct {
+    //pub connection: PgConnection
+    pub connection: SqliteConnection
+}
+
+pub trait ConnectFourDataBase {
+    fn new() -> ConnectFourDataBaseStruct;
+    fn insert_user(&mut self, ws_id: u32, login: String) -> String;
+    fn user_exists(&mut self, ws_id_to_test: i32) -> bool;
+    fn get_user_ws_id(&mut self) -> Option<User>;
+    fn get_user_alone(&mut self) -> Option<String>;
+    fn insert_game(&mut self, id_player1: u32, id_player2: u32, grid: Grid) -> bool;
+    fn play_with(&mut self, id_player1: u32) -> Option<GameInProgress>;
+    fn update_grid(&mut self, id_player1: u32, grid: &Grid) -> bool;
+}
+
+impl ConnectFourDataBase for ConnectFourDataBaseStruct {
+    fn new() -> ConnectFourDataBaseStruct {
+        ConnectFourDataBaseStruct {
+            connection:  establish_connection()
+        }
+    }
+
+    fn insert_user(&mut self, ws_id: u32, login: String) -> String {
+        let uuid = Uuid::new_v4().to_string();
+        match self.user_exists(ws_id as i32) {
+            true => {
+                uuid
+            },
+            false => {
+                let new_user = NewUser {
+                    ws_id:     ws_id as i32,
+                    uuid:      &uuid.to_string(),
+                    admin:     false,
+                    points:    0,
+                    login:     &*login,
+                    connected: true,
+                    playing:   false
+                };
+                diesel::insert(&new_user).into(users)
+                .execute(&self.connection).unwrap();
+                uuid
+            }
+        }
+    }
+    
+    fn user_exists(&mut self, ws_id_to_test: i32) -> bool {
+        use connect_four::schema::users::*;
+        let query_fragment = connect_four::schema::users::dsl::users.filter(
+            ws_id.eq(ws_id_to_test)).limit(1);
+        let mut u = query_fragment.load::<User>(&self.connection).unwrap();
+        !u.is_empty()
+    }
+    
+    fn get_user_ws_id(&mut self) -> Option<User> {
+        use connect_four::schema::users::*;
+        let query_fragment = connect_four::schema::users::dsl::users.filter(
+            connected.eq(true).and(playing.eq(false))).limit(1);
+        let mut u = query_fragment.load::<User>(&self.connection).unwrap();
+        if u.is_empty() {
+            None
+        }
+        else {
+            u.pop()
+        }
+    }
+    
+    fn get_user_alone(&mut self) -> Option<String> {
+        use connect_four::schema::users::*;
+        let query_fragment = connect_four::schema::users::dsl::users.filter(
+            playing.eq(false)).limit(1);
+        let mut u = query_fragment.load::<User>(&self.connection).unwrap();
+        if u.is_empty() {
+            None
+        }
+        else {
+            u.pop().unwrap().uuid
+        }
+    }
+    
+    fn insert_game(&mut self, id_player1: u32, id_player2: u32, grid: Grid) -> bool {
+        let new_game = NewGameInProgress {
+            id_player1:     id_player1 as i32,
+            id_player2:     id_player2 as i32,
+            serialize_grid: serde_json::to_string(&grid).unwrap()
+        };
+        diesel::insert(&new_game).into(game_in_progress)
+        .execute(&self.connection).unwrap();
+        true
+    }
+    
+    fn play_with(&mut self, id_player1: u32) -> Option<GameInProgress> {
+        use connect_four::schema::game_in_progress::*;
+        let query_fragment = connect_four::schema::game_in_progress::dsl::game_in_progress.filter(
+            id_player1.eq(id_player1)
+            .or(id_player2.eq(id_player1))
+        ).limit(1);
+        let mut g = query_fragment.load::<GameInProgress>(&self.connection).unwrap();
+        if g.is_empty() {
+            None
+        }
+        else {
+            g.pop()
+        }
+    }
+    
+    fn update_grid(&mut self, id_player2: u32, grid: &Grid) -> bool {
+        use connect_four::schema::game_in_progress::*;
+        diesel::update(connect_four::schema::game_in_progress::dsl::game_in_progress.filter(
+            id_player2.eq(id_player2)
+         ))
+        .set(serialize_grid.eq(serde_json::to_string(&grid).unwrap()))
+        .execute(&self.connection);
+        true
+    }
+}
+
 struct ChatHandler {
     out: ws::Sender,
+    db: ConnectFourDataBaseStruct,
     nick: Option<String>,
     message_log: MessageLog,
     users: Users,
+    //senders: Senders,
+    not_playing_uuid:  Option<RefCell<String>>
 }
 
+use ws::{Request, Result, Response};
+// https://github.com/housleyjk/ws-site-chat/blob/master/src/main.rs
 impl ws::Handler for ChatHandler {
 
     fn on_open(&mut self, _: ws::Handshake) -> ws::Result<()> {
@@ -96,7 +250,7 @@ impl ws::Handler for ChatHandler {
                 }
             }
         }
-        if let Some(msgs) = msgs1 {
+        /*if let Some(msgs) = msgs1 {
             for msg in msgs {
                 if let Some(sent) = msg.sent {
                     if  time::get_time() - time::Timespec::new(sent, 0) < time::Duration::minutes(10) {
@@ -107,57 +261,141 @@ impl ws::Handler for ChatHandler {
                     }
                 }
             }
-        }
+        }*/
         Ok(())
+    }
+
+    fn on_request(&mut self, req: &Request) -> Result<Response> {
+        let mut res = try!(Response::from_request(req));
+        if try!(req.extensions()).iter().find(|&&ext| ext.contains("myextension-name")).is_some() {
+            res.add_extension("myextension-name")
+        }
+        Ok(res)
     }
 
     fn on_message(&mut self, msg: ws::Message) -> ws::Result<()> {
         if let Ok(text_msg) = msg.clone().as_text() {
-            println!("yo");
             if let Ok(wrapper) = serde_json::from_str::<Wrapper>(text_msg) {
-                println!("json");
-                if let Ok(simple_msg) = serde_json::from_value::<Message>(wrapper.content.clone()) {
-                    println!("simple");
-                    self.message_log.borrow_mut().push(simple_msg.into_log());
-                    return self.out.broadcast(msg)
-                }
+                let id = self.out.connection_id();
                 if let Ok(join) = serde_json::from_value::<Join>(wrapper.content.clone()) {
-                    println!("wrap");
-                    if self.users.borrow().contains(&join.join_nick) {
-                        return self.out.send(format!("{:?}", json!({
-                            "path": "/error",
-                            "content": "A user by that name already exists.",
-                        })))
+                    // first : give the alone user id
+                    let user_alone = self.db.get_user_ws_id();
+                    let join_nick = join.join_nick.clone();
+                    let uuid = self.db.insert_user(id, join_nick.clone());
+                    match user_alone {
+                        Some(second_user) => {
+                            /* Create a game and start it ! */
+                            let grid = Grid::new();
+                            self.db.insert_game(id, second_user.ws_id as u32, grid);
+                            let mut users_m  = self.users.borrow_mut();
+                            users_m.insert(id, WSUser {
+                                name: Some(join_nick.clone()),
+                                play_on: Some(second_user.id as i32),
+                                color: DiscColor::Red
+                            });
+                            /*users_m[&(second_user.id as u32)] = WSUser {
+                                name: second_user.login.clone(),
+                                play_on: Some(id as i32),
+                                color: DiscColor::Red
+                            };*/
+                            println!("exist! second user id : {}", second_user.ws_id);
+                            self.out.send_to(second_user.ws_id as u32, format!("{}",
+                                json!({
+                                    "path": "game_start",
+                                    "opponent": join_nick.clone(),
+                                    "begin": true,
+                                    "color": DiscColor::Yellow,
+                                    "opponent_color": DiscColor::Red
+                                })
+                            ));
+                            return self.out.send(format!("{}",
+                                json!({
+                                    "path": "game_start",
+                                    "opponent": second_user.login,
+                                    "begin": false,
+                                    "color": DiscColor::Red,
+                                    "opponent_color": DiscColor::Yellow
+                                })
+                            ));
+                        }
+                        None => {
+                            /* Keep user in waiting */
+                            self.users.borrow_mut().insert(id, WSUser {
+                                name:    Some(join.join_nick),
+                                play_on: None,
+                                color:   DiscColor::Yellow
+                            });
+                            return self.out.send(format!("{}",
+                                json!({
+                                    "path": "wait",
+                                    "message": "Please wait : nobody to play actualy."
+                                })
+                            ));
+                        }
                     }
-                    let join_msg = Message {
-                        nick: "system".into(),
-                        message: format!("{} has joined the chat.", join.join_nick),
-                    };
-                    self.users.borrow_mut().insert(join.join_nick.clone());
-                    self.nick = Some(join.join_nick);
-                    self.message_log.borrow_mut().push(join_msg.clone().into_log());
-                    return self.out.broadcast(format!("{:?}", json!({
-                        "path": "/joined",
-                        "content": join_msg,
-                    })))
+                }
+                if let Ok(play) = serde_json::from_value::<Play>(wrapper.content.clone()) {
+                    let game = self.db.play_with(id).unwrap();
+                    let colorInt = self.users.borrow().get(&id).unwrap().color.clone() as i8;
+                    let mut grid: Grid = serde_json::from_str(&game.serialize_grid.unwrap()).unwrap();
+                    grid.update(play.disc_x as usize, play.disc_y as usize, colorInt);
+                    let mut second_player_id = game.id_player1;
+                    if (id == game.id_player1 as u32) {
+                        second_player_id = game.id_player2;
+                    }
+                    self.db.update_grid(second_player_id as u32, &grid);
+                    match(win(
+                        &grid.grid,
+                        play.disc_x as usize,
+                        play.disc_y as usize, 
+                        colorInt
+                    )) {
+                        true => {
+                            self.out.send_to(second_player_id as u32, format!("{}",
+                                json!({
+                                    "path": "game_over",
+                                    "x": play.disc_x
+                                    
+                                })
+                            ));
+                            return self.out.send(format!("{}",
+                                json!({
+                                    "path": "win"
+                                })
+                            ));
+                        },
+                        false => {
+                            self.out.send_to(second_player_id as u32, format!("{}",
+                                json!({
+                                    "path": "play",
+                                    "x": play.disc_x
+                                })
+                            ));
+                            return self.out.send(format!("{}",
+                                json!({
+                                    "path": "has_played"
+                                })
+                            ));
+                        }
+                    }
                 }
             }
         }
-        self.out.send(format!("{:?}", json!({
+        self.out.send(format!("{}", json!({
             "path": "/error",
-            "content": format!("Unable to parse message {:?}", msg),
+            "content": format!("Unable to parse message ! {}", msg),
         })))
     }
 
     fn on_close(&mut self, _: ws::CloseCode, _: &str) {
         if let Some(nick) = self.nick.as_ref() {
-            self.users.borrow_mut().remove(nick);
+            self.users.borrow_mut().remove(&self.out.connection_id());
             let leave_msg = Message {
                 nick: "system".into(),
                 message: format!("{} has left the chat.", nick),
             };
             self.message_log.borrow_mut().push(leave_msg.clone().clone().into_log());
-            if let Err(err) = self.out.broadcast(format!("{:?}", json!({
+            if let Err(err) = self.out.broadcast(format!("{}", json!({
                 "path": "/left",
                 "content": leave_msg,
             }))) {
@@ -189,7 +427,6 @@ impl ws::Handler for ChatHandler {
 }
 
 fn main () {
-
     // Setup logging
     env_logger::init().unwrap();
 
@@ -207,35 +444,21 @@ fn main () {
             ).unwrap_or(
                 Vec::with_capacity(10_000))));
 
-    let users = Users::new(RefCell::new(HashSet::with_capacity(10_000)));
+    let _users = Users::new(RefCell::new(HashMap::with_capacity(10_000)));
+    //let _senders = Senders::new(RefCell::new(HashMap::with_capacity(10_000)));
 
-    if let Err(error) = ws::listen(ADDR, |out| {
+    if let Err(error) = ws::listen(format!("{}:{}", ADDR, PORT), |out| {
         ChatHandler {
             out: out,
+            db:  ConnectFourDataBaseStruct::new(),
             nick: None,
             message_log: message_log.clone(),
-            users: users.clone(),
+            users: _users.clone(),
+            //senders: _senders.clone(),
+            not_playing_uuid: None
         }
 
     }) {
         error!("Failed to create WebSocket due to {:?}", error);
     }
 }
-/*
-extern crate ws;
-extern crate env_logger;
-
-use ws::listen;
-
-fn main () {
-    env_logger::init().unwrap();
-    if let Err(error) = listen("127.0.0.1:3012", |out| {
-        move |msg| {
-            println!("Server got message '{}'. ", msg);
-            out.send(msg)
-        }
-    }) {
-        println!("Failed to create WebSocket due to {:?}", error);
-    }
-}
-*/

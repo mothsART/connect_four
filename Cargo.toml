@@ -6,22 +6,29 @@ authors = ["Ferry Jérémie <ferryjeremie@free.fr>"]
 [dependencies]
 cairo-rs = "^0"
 gdk      = "^0"
-rocket          = { git = "https://github.com/SergioBenitez/Rocket.git", rev = "ef4c2fd" }
-rocket_codegen  = { git = "https://github.com/SergioBenitez/Rocket.git", rev = "ef4c2fd" }
+rocket = "0.3.0"
+rocket_codegen = "0.3.0"
+yansi = "0.3.4"
 serde           = "1.0"
 serde_derive    = "1.0"
 env_logger      = "0.4"
-ws              = "0.7"
+ws              = "0.7.3"
 log = "*"
 time = "*"
 serde_json = "*"
+diesel = { version = "0.15.1", features = ["postgres"] }
+diesel_codegen = { version = "0.15.0", features = ["postgres", "sqlite"] }
+dotenv = "0.10.0"
+uuid = { version = "0.5", features = ["v4"] }
 
 [dependencies.rocket_contrib]
-git              = "https://github.com/SergioBenitez/Rocket.git"
-rev              = "ef4c2fd"
+version = "0.3.0"
 default-features = false
 features = ["tera_templates", "msgpack"]
 
 [dependencies.gtk]
-version = "0.1.3"
+version = "0.3.0"
 features = ["v3_10"]
+
+[replace]
+"ws:0.7.3" = { path = '../ws-rs' }
