@@ -1,17 +1,17 @@
-use schema::{users, game_in_progress};
+use super::schema::{users, game_in_progress};
 
 #[derive(Debug)]
 #[derive(Queryable)]
 pub struct User {
     pub id:        i32,
     pub ws_id:     i32,
-    pub uuid:      Option<String>,
+    pub uuid:      String,
     pub admin:     bool,
-    pub login:     Option<String>,
-    pub passw:     Option<String>,
+    pub login:     String,
+    pub passw:     String,
     pub points:    i32,
     pub connected: bool,
-    pub playing:   bool
+    pub playing:   bool,
 }
 
 #[derive(Insertable)]
@@ -20,10 +20,10 @@ pub struct NewUser<'a> {
     pub ws_id:     i32,
     pub uuid:      &'a str,
     pub admin:     bool,
-    pub points:    i32,
     pub login:     &'a str,
+    pub points:    i32,    
     pub connected: bool,
-    pub playing:   bool
+    pub playing:   bool,
 }
 
 #[derive(Queryable)]

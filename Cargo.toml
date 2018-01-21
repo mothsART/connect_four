@@ -16,8 +16,7 @@ ws              = "0.7.3"
 log = "*"
 time = "*"
 serde_json = "*"
-diesel = { version = "0.15.1", features = ["postgres"] }
-diesel_codegen = { version = "0.15.0", features = ["postgres", "sqlite"] }
+diesel = { version = "1.1.1", features = ["postgres", "sqlite"] }
 dotenv = "0.10.0"
 uuid = { version = "0.5", features = ["v4"] }
 
