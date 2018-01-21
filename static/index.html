@@ -2,11 +2,75 @@
 <html>
     <head>
        <title>Connect Four !!!</title>
-       <link rel="stylesheet" href="./static/style.css" type="text/css"/>
-       <script src="./static/script.js"></script>
+       <link rel="stylesheet" href="./static/src/css/modal.css" type="text/css"/>
+       <link rel="stylesheet" href="./static/src/css/style.css" type="text/css"/>
     </head>
     <body>
+        <!-- template for the modal component -->
+        <script type="text/x-template" id="entry-template">
+          <div slot="entry">
+            <div class="modal-header">
+                <slot name="header">
+                  {{ users }} inscrit(s) en ligne
+                </slot>
+              </div>
+              <div class="modal-body">
+                  <label for="login">Identifiant : </label>
+                  <input id="login" type="text" @input="chooseLogin" />
+              </div>
+              <div class="modal-footer">
+                  <button class="left" :disabled="isDisabled" v-on:click="selectOpponent">
+                    Sélectionner un adversaire
+                  </button>
+                  <button class="right" :disabled="isDisabled" @click="$emit('close')">
+                    Choisir un adversaire au hasard
+                  </button>
+              </div>
+          </div>
+        </script>
+        <script type="text/x-template" id="user-list-template">
+          <table slot="user-list">
+            <thead>
+              <tr>
+                <th>Utilisateur(s) connecté(s)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="ligne in logins">
+                <td>
+                  {{ ligne }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </script>
+        <script type="text/x-template" id="modal-template">
+          <transition name="modal">
+            <div class="modal-mask">
+              <div class="modal-wrapper">
+                <div class="modal-container">
+                    <template v-if="showEntry">
+                        <entry v-on:select="getOpponent">
+                          <slot></slot>
+                        </entry>
+                    </template>
+                    <template v-if="showUserList">
+                        <user-list>
+                            <slot name="user-list"></slot>
+                        </user-list>
+                    </template>
+                </div>
+              </div>
+            </div>
+          </transition>
+        </script>
       <div id="content">
+          <div id="app">
+              <modal v-if="showModal" @close="showModal = false">
+                  <entry>
+                  <user-list>
+              </modal>
+          </div>
         <svg xmlns="http://www.w3.org/2000/svg" viewbox="0 0 744.9650083184242 674.2500295639038"
         version="1">
         <g id="arrow">
@@ -25,19 +89,19 @@
                 </g>
               </g>
             </g>
-          <g id="masks" onmouseout="col_out();">
+          <g id="masks" onmouseout="user.col_out();">
             <rect
               id="col-1"
-              onclick="col_clic(this);"
-              onmouseover="col_over(this);"
+              onclick="user.col_clic(this);"
+              onmouseover="user.col_over(this);"
               y="30"
               width="112"
               height="644.2500295639038">
             </rect>
             <rect
               id="col-2"
-              onclick="col_clic(this);"
-              onmouseover="col_over(this);"
+              onclick="user.col_clic(this);"
+              onmouseover="user.col_over(this);"
               y="30"
               width="104"
               height="644.2500295639038"
@@ -45,8 +109,8 @@
             </rect>
             <rect
               id="col-3"
-              onclick="col_clic(this);"
-              onmouseover="col_over(this);"
+              onclick="user.col_clic(this);"
+              onmouseover="user.col_over(this);"
               y="30"
               width="104"
               height="644.2500295639038"
@@ -54,8 +118,8 @@
             </rect>
             <rect
               id="col-4"
-              onclick="col_clic(this);"
-              onmouseover="col_over(this);"
+              onclick="user.col_clic(this);"
+              onmouseover="user.col_over(this);"
               y="30"
               width="104"
               height="644.2500295639038"
@@ -63,8 +127,8 @@
             </rect>
             <rect
               id="col-5"
-              onclick="col_clic(this);"
-              onmouseover="col_over(this);"
+              onclick="user.col_clic(this);"
+              onmouseover="user.col_over(this);"
               y="30"
               width="104"
               height="644.2500295639038"
@@ -72,8 +136,8 @@
             </rect>
             <rect
               id="col-6"
-              onclick="col_clic(this);"
-              onmouseover="col_over(this);"
+              onclick="user.col_clic(this);"
+              onmouseover="user.col_over(this);"
               y="30"
               width="104"
               height="644.2500295639038"
@@ -81,8 +145,8 @@
             </rect>
             <rect
               id="col-7"
-              onclick="col_clic(this);"
-              onmouseover="col_over(this);"
+              onclick="user.col_clic(this);"
+              onmouseover="user.col_over(this);"
               y="30"
               width="112"
               height="644.2500295639038"
@@ -91,8 +155,12 @@
           </g>
         </svg>
       </div>
-      <script src="https://cdnjs.cloudflare.com/ajax/libs/msgpack-lite/0.1.26/msgpack.min.js"></script>
-      <script src="./static/axios.js"></script>
-      <script src="./static/vue.js"></script>
+      <script src="./static/node_modules/vue/dist/vue.js"></script>
+      <script src="./static/public/user.js"></script>
+      <script src="./static/public/ws.js"></script>
+      <script src="./static/public/ws_events.js"></script>
+      <script src="./static/public/modal.js"></script>
+      <!--<script src="https://cdnjs.cloudflare.com/ajax/libs/msgpack-lite/0.1.26/msgpack.min.js"></script>
+      <script src="./static/axios.js"></script>-->
     </body>
 </html>

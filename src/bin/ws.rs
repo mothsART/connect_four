@@ -238,6 +238,7 @@ impl ws::Handler for ChatHandler {
         let msgs1 = it.next();
         let msgs2 = it.next();
         // longwinded reverse
+        println!("cool!");
         if let Some(msgs) = msgs2 {
             for msg in msgs {
                 if let Some(sent) = msg.sent {

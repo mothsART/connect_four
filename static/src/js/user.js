@@ -1,6 +1,4 @@
-var websocket = null;
-
-var grid = [
+let grid = [
   [null, null, null, null, null, null],
   [null, null, null, null, null, null],
   [null, null, null, null, null, null],
@@ -10,78 +8,13 @@ var grid = [
   [null, null, null, null, null, null]
 ]
 
-var user = {
+let user = {
   nick: null,
   opponent_nick: null,
   color: null,
   opponent_color: null,
   wait_opponent: true,
   wait_playing: true
-}
-
-function on_game_start(data) {
-  "use strict";
-  console.log("game start ! user play : " + !data.begin);
-  user.color          = data.color;
-  user.opponent_color = data.opponent_color;
-  user.opponent_nick  = data.opponent;
-  user.wait_opponent  = false;
-  user.wait_playing   = !data.begin;
-}
-
-function on_play(data) {
-  "use strict";
-  console.log("play!");
-  play(user.opponent_color, data.x);
-  user.wait_playing  = false;
-}
-
-function on_wait(data) {
-  "use strict";
-  console.log("wait !");
-}
-
-function on_win(data) {
-  "use strict";
-  console.log("you win!");
-  user.wait_opponent  = true;
-}
-
-function on_game_over(data) {
-  "use strict";
-  console.log("game over!");
-  play(user.opponent_color, data.x);
-  user.wait_opponent  = true;
-}
-
-function on_has_played(data) {
-  "use strict";
-  console.log("has played!");
-}
-
-function ws(nick) {
-    "use strict";
-    websocket = new WebSocket('ws:/' + location.hostname + ':3012');
-    websocket.onopen = function(evt) {
-      var join    = {'join_nick': nick};
-      var wrapper = JSON.stringify({'path': 'joined', 'content': join});
-      websocket.send(wrapper);
-    };
-    websocket.onmessage = function(evt) {
-      try {
-        var data = JSON.parse(evt.data);
-        window["on_" + data.path](data);
-      }
-      catch (e) {
-        write('Le serveur envoie (' + evt.data + ')');
-      }
-    };
-    websocket.onerror = function(evt){
-      console.log(evt);
-    };
-    websocket.onclose = function (evt) {
-      console.log(evt);
-    };
 }
 
 function col_over(element) {
@@ -143,7 +76,9 @@ function col_clic(element) {
   }));
 }
 
-function write(t) {
-  "use strict";
-  console.log(t);
+module.exports = {
+  col_out: col_out,
+  col_over: col_over,
+  col_clic: col_clic
 };
+
