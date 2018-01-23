@@ -1,3 +1,8 @@
+function on_connected(nickname) {
+  "use strict";
+  console.log("user : " + nickname + " joined game");
+}
+
 function on_join(nickname) {
   "use strict";
   console.log("user : " + nickname + " joined game");

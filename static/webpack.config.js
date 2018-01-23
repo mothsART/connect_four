@@ -7,6 +7,7 @@ const UglifyJSPlugin = require('uglifyjs-webpack-plugin');
 let config = {
   entry: {
       "modal": "./src/js/modal.js",
+      "server": "./src/js/server.js",
       "user": "./src/js/user.js",
       "ws": "./src/js/ws.js",
       "ws_events": "./src/js/ws_events.js"

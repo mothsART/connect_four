@@ -2,4 +2,6 @@ target/
 Cargo.lock
 message_log
 connect_four.db
+static/package-lock.json
+static/public
 static/node_modules

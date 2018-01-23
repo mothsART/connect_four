@@ -35,6 +35,11 @@ type Users      = Rc<RefCell<HashMap<u32, WSUser>>>;
 type Senders    = Rc<RefCell<HashMap<i32, ws::Sender>>>;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+struct Connected {
+    path: String
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 struct Wrapper {
     path: String,
     content: Json,
@@ -105,7 +110,7 @@ pub struct ConnectFourDataBaseStruct {
 
 pub trait ConnectFourDataBase {
     fn new() -> ConnectFourDataBaseStruct;
-    fn count_sers(&mut self) -> i64;
+    fn count_users(&mut self) -> i64;
     fn insert_user(&mut self, ws_id: u32, login: String) -> String;
     fn user_exists(&mut self, ws_id_to_test: i32) -> bool;
     fn get_user_ws_id(&mut self) -> Option<User>;
@@ -122,10 +127,13 @@ impl ConnectFourDataBase for ConnectFourDataBaseStruct {
         }
     }
 
-    fn count_sers(&mut self) -> i64 {
+    fn count_users(&mut self) -> i64 {
         use diesel::dsl::*;
         use connect_four::schema::users::*;
-        match connect_four::schema::users::dsl::users.select(count(uuid)).first(&self.connection) {
+        match connect_four::schema::users::dsl::users
+            .select(count(uuid))
+            .filter(connected.eq(true))
+            .first(&self.connection) {
              Ok(v) => v,
              Err(e) => 0
         }
@@ -247,7 +255,7 @@ impl ws::Handler for ChatHandler {
         try!(self.out.timeout(PING_TIME, PING));
         let backlog = self.message_log.borrow();
         // We take two chunks because one chunk might not be a full 50
-        let mut it = backlog.chunks(50).rev().take(2);
+        /*let mut it = backlog.chunks(50).rev().take(2);
         let msgs1 = it.next();
         let msgs2 = it.next();
         // longwinded reverse
@@ -259,12 +267,13 @@ impl ws::Handler for ChatHandler {
                         try!(self.out.send(format!("{:?}", json!({
                             "path": "/message",
                             "content": msg.to_message(),
+                            "users_nb": self.db.count_users()
                         }))))
                     }
                 }
             }
         }
-        /*if let Some(msgs) = msgs1 {
+        if let Some(msgs) = msgs1 {
             for msg in msgs {
                 if let Some(sent) = msg.sent {
                     if  time::get_time() - time::Timespec::new(sent, 0) < time::Duration::minutes(10) {
@@ -289,6 +298,14 @@ impl ws::Handler for ChatHandler {
 
     fn on_message(&mut self, msg: ws::Message) -> ws::Result<()> {
         if let Ok(text_msg) = msg.clone().as_text() {
+            if let Ok(path) = serde_json::from_str::<Connected>(text_msg) {
+                return self.out.send(format!("{}",
+                    json!({
+                        "path": "connected",
+                        "users_nb": self.db.count_users()
+                    })
+                ));
+            }
             if let Ok(wrapper) = serde_json::from_str::<Wrapper>(text_msg) {
                 let id = self.out.connection_id();
                 if let Ok(join) = serde_json::from_value::<Join>(wrapper.content.clone()) {

@@ -2,7 +2,10 @@ import 'vue'
 
 Vue.component('modal', {
   template: '#modal-template',
-  data: function () {
+  props: {
+    server: Object
+  },
+  data () {
     return {
       showEntry: true,
       showUserList: false
@@ -18,14 +21,16 @@ Vue.component('modal', {
 
 Vue.component('entry', {
   template: '#entry-template',
-  data: function () {
+  props: {
+    users_nb: Number
+  },
+  data () {
     return {
-      users: 1000,
       isDisabled: 'disabled'
     }
   },
   methods: {
-    selectOpponent: function () {
+    selectOpponent () {
       this.$emit('select');
     },
     chooseLogin: function (e) {
@@ -57,10 +62,14 @@ var app = new Vue({
     new ws.WS(port);
   },
   data: {
-    showUserList: false,
+    server: server.server,
+    users_nb: 0,
     showModal: true
   },
   methods: {
+    setUserNb: function(users_nb) {
+      this.server.users_nb = users_nb;
+    },
     getOpponent: function () {
       debugger;
     }
