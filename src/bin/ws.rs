@@ -371,16 +371,16 @@ impl ws::Handler for ChatHandler {
                     let mut grid: Grid = serde_json::from_str(&game.serialize_grid.unwrap()).unwrap();
                     grid.update(play.disc_x as usize, play.disc_y as usize, colorInt);
                     let mut second_player_id = game.id_player1;
-                    if (id == game.id_player1 as u32) {
+                    if id == game.id_player1 as u32 {
                         second_player_id = game.id_player2;
                     }
                     self.db.update_grid(second_player_id as u32, &grid);
-                    match(win(
+                    match win(
                         &grid.grid,
                         play.disc_x as usize,
                         play.disc_y as usize, 
                         colorInt
-                    )) {
+                    ) {
                         true => {
                             self.out.send_to(second_player_id as u32, format!("{}",
                                 json!({
@@ -476,19 +476,16 @@ fn main () {
                 Vec::with_capacity(10_000))));
 
     let _users = Users::new(RefCell::new(HashMap::with_capacity(10_000)));
-    //let _senders = Senders::new(RefCell::new(HashMap::with_capacity(10_000)));
-
     if let Err(error) = ws::listen(format!("{}:{}", ADDR, PORT), |out| {
         ChatHandler {
             out: out,
-            db:  ConnectFourDataBaseStruct::new(),
+            db: ConnectFourDataBaseStruct::new(),
             nick: None,
             message_log: message_log.clone(),
             users: _users.clone(),
             //senders: _senders.clone(),
             not_playing_uuid: None
         }
-
     }) {
         error!("Failed to create WebSocket due to {:?}", error);
     }

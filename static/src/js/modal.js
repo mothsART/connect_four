@@ -11,12 +11,24 @@ Vue.component('modal', {
       showUserList: false
     }
   },
+  computed: {
+    isShow: function () {
+      return this.server.enabled && this.showEntry
+    }
+  },
   methods: {
     getOpponent: function () {
       this.showEntry = false;
       this.showUserList = true;
+    },
+    getRandomOpponent: function() {
+      this.showEntry = false;
     }
   }
+})
+
+Vue.component('connexion-error', {
+  template: '#connexion-error'
 })
 
 Vue.component('entry', {
@@ -31,7 +43,10 @@ Vue.component('entry', {
   },
   methods: {
     selectOpponent () {
-      this.$emit('select');
+      this.$emit('selectOpponent');
+    },
+    selectRandomOpponent () {
+      this.$emit('selectRandomOpponent');
     },
     chooseLogin: function (e) {
       if (e.target.value)
@@ -69,9 +84,6 @@ var app = new Vue({
   methods: {
     setUserNb: function(users_nb) {
       this.server.users_nb = users_nb;
-    },
-    getOpponent: function () {
-      debugger;
     }
   }
 })

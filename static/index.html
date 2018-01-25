@@ -7,6 +7,11 @@
     </head>
     <body>
         <!-- template for the modal component -->
+        <script type="text/x-template" id="connexion-error">
+            <div slot="connexion-error">
+                Le serveur n'est pas disponible.
+            </div>
+        </script>
         <script type="text/x-template" id="entry-template">
           <div slot="entry">
             <div class="modal-header">
@@ -22,7 +27,7 @@
                   <button class="left" :disabled="isDisabled" v-on:click="selectOpponent">
                     Sélectionner un adversaire
                   </button>
-                  <button class="right" :disabled="isDisabled" @click="$emit('close')">
+                  <button class="right" :disabled="isDisabled" @click="selectRandomOpponent">
                     Choisir un adversaire au hasard
                   </button>
               </div>
@@ -49,8 +54,13 @@
             <div class="modal-mask">
               <div class="modal-wrapper">
                 <div class="modal-container">
-                    <template v-if="showEntry">
-                        <entry v-on:select="getOpponent" :users_nb="server.users_nb">
+                    <template v-if="!server.enabled">
+                        <connexion-error>
+                          <slot name="connexion-error"></slot>
+                        </connexion-error>
+                    </template>
+                    <template v-if="isShow">
+                        <entry v-on:selectOpponent="getOpponent" v-on:selectRandomOpponent="getRandomOpponent" :users_nb="server.users_nb">
                           <slot></slot>
                         </entry>
                     </template>
@@ -67,6 +77,7 @@
       <div id="content">
           <div id="app">
               <modal v-if="showModal" @close="showModal = false" :server="server">
+                  <connexion-error>
                   <entry>
                   <user-list>
               </modal>

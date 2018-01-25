@@ -57,6 +57,7 @@ class WS {
     let websocket = new WebSocket('ws:/' + location.hostname + ':' + port);
     this.websocket = websocket;
     websocket.onopen = function(evt) {
+      modal.app.server.enabled = true;
       let wrapper = JSON.stringify({'path': 'connected'});
       websocket.send(wrapper);
     }
@@ -64,7 +65,7 @@ class WS {
     websocket.onerror = function(evt){
       write(evt);
     };
-    websocket.onclose = function (evt) {
+    this.websocket.onclose = function (evt) {
       write(evt);
     };
   }
