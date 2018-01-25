@@ -114,7 +114,8 @@ pub trait ConnectFourDataBase {
     fn insert_user(&mut self, ws_id: u32, login: String) -> String;
     fn user_exists(&mut self, ws_id_to_test: i32) -> bool;
     fn get_user_ws_id(&mut self) -> Option<User>;
-    fn get_user_alone(&mut self) -> String;
+    fn get_connected_users(&mut self) -> Option<Vec<User>>;
+    fn get_user_alone(&mut self) -> Option<String>;
     fn insert_game(&mut self, id_player1: u32, id_player2: u32, grid: Grid) -> bool;
     fn play_with(&mut self, id_player1: u32) -> Option<GameInProgress>;
     fn update_grid(&mut self, id_player1: u32, grid: &Grid) -> bool;
@@ -157,11 +158,6 @@ impl ConnectFourDataBase for ConnectFourDataBaseStruct {
                 };
                 diesel::insert_into(users)
                 .values(&new_user);
-                //.get_result(&self.connection)
-                //.expect("Error saving new post");
-                
-                //diesel::dsl::insert(&new_user).into(users)
-                //.execute(&self.connection).unwrap();
                 uuid
             }
         }
@@ -178,25 +174,65 @@ impl ConnectFourDataBase for ConnectFourDataBaseStruct {
 
     fn get_user_ws_id(&mut self) -> Option<User> {
         use connect_four::schema::users::*;
-        let query_fragment = connect_four::schema::users::dsl::users.filter(
-            connected.eq(true).and(playing.eq(false))).limit(1);
-        let mut u = query_fragment.load::<User>(&self.connection).unwrap();
-        if u.is_empty() {
-            None
-        }
-        else {
-            u.pop()
+        let result = connect_four::schema::users::dsl::users
+        .filter(connected.eq(true)
+        .and(playing.eq(false)))
+        .limit(1)
+        .load::<User>(&self.connection);
+        match result {
+            Ok(mut r) => {
+                if r.is_empty() {
+                    None
+                }
+                else {
+                    r.pop()
+                }
+            },
+            Err(e) => None
         }
     }
 
-    fn get_user_alone(&mut self) -> String {
+    fn get_connected_users(&mut self) -> Option<Vec<User>> {
         use connect_four::schema::users::*;
-        let query_fragment = connect_four::schema::users::dsl::users.filter(
-            playing.eq(false)).limit(1);
-        let mut u = query_fragment.load::<User>(&self.connection).unwrap();
-        u.pop().unwrap().uuid
+        let result = connect_four::schema::users::dsl::users
+        .filter(connected.eq(true)
+        .and(playing.eq(false)))
+        .load::<User>(&self.connection);
+        match result {
+            Ok(r) => {
+                if r.is_empty() {
+                    None
+                }
+                else {
+                    Some(r)
+                }
+            },
+            Err(e) => None
+        }
     }
     
+    fn get_user_alone(&mut self) -> Option<String> {
+        use connect_four::schema::users::*;
+        let result = connect_four::schema::users::dsl::users.
+        filter(playing.eq(false))
+        .limit(1)
+        .load::<User>(&self.connection);
+        match result {
+            Ok(mut r) => {
+                if r.is_empty() {
+                    None
+                }
+                else {
+                    match r.pop() {
+                        Some(u) => Some(u.uuid),
+                        None => None
+                    }
+                }
+            },
+            Err(e) => None
+        }
+    }
+
     fn insert_game(&mut self, id_player1: u32, id_player2: u32, grid: Grid) -> bool {
         let new_game = NewGameInProgress {
             id_player1:     id_player1 as i32,
@@ -205,8 +241,6 @@ impl ConnectFourDataBase for ConnectFourDataBaseStruct {
         };
         diesel::insert_into(game_in_progress)
         .values(&new_game);
-        //diesel::insert(&new_game).into(game_in_progress)
-        //.execute(&self.connection).unwrap();
         true
     }
     
@@ -224,7 +258,7 @@ impl ConnectFourDataBase for ConnectFourDataBaseStruct {
             g.pop()
         }
     }
-    
+
     fn update_grid(&mut self, id_player2: u32, grid: &Grid) -> bool {
         use connect_four::schema::game_in_progress::*;
         diesel::update(connect_four::schema::game_in_progress::dsl::game_in_progress.filter(
