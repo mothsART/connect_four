@@ -1,34 +1,37 @@
 {
-  "name": "static",
-  "version": "1.0.0",
-  "description": "",
-  "main": "axios.js",
+  "name": "connectfour",
+  "description": "A Vue.js project",
+  "version": "0.0.1",
   "author": "Ferry Jérémie <ferryjeremie@free.fr>",
+  "license": "BSD",
+  "private": true,
   "scripts": {
-    "dev": "webpack-dev-server --inline --progress --config build/webpack.dev.conf.js",
-    "build": "node build/build.js",
-    "lint": "eslint --ext .js,.vue src",
-    "watch": "webpack --watch"
+    "updates": "npm-check-updates -u",
+    "dev": "cross-env NODE_ENV=development webpack-dev-server --open --hot",
+    "build": "cross-env NODE_ENV=production webpack --progress --hide-modules",
+    "prod": "npm run build"
   },
-  "keywords": [],
-  "license": "ISC",
   "dependencies": {
-    "vue": "^2.5.13",
-    "vue-js-modal": "^1.3.8"
+    "vue": "^2.5.11",
+    "webpack-uglify-js-plugin": "^1.1.9"
   },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not ie <= 8"
+  ],
   "devDependencies": {
     "autoprefixer": "^7.2.5",
-    "babel-cli": "^6.26.0",
     "babel-core": "^6.26.0",
-    "babel-eslint": "^8.2.1",
     "babel-loader": "^7.1.2",
-    "babel-preset-env": "^1.6.1",
-    "copy-webpack-plugin": "^4.3.1",
-    "css-loader": "^0.28.9",
+    "babel-preset-env": "^1.6.0",
+    "babel-preset-stage-3": "^6.24.1",
+    "cross-env": "^5.0.5",
+    "css-loader": "^0.28.7",
     "eslint": "^4.16.0",
     "eslint-config-standard": "^11.0.0-beta.0",
     "eslint-friendly-formatter": "^3.0.0",
-    "eslint-loader": "^1.7.1",
+    "eslint-loader": "^1.9.0",
     "eslint-plugin-import": "^2.8.0",
     "eslint-plugin-node": "^5.2.1",
     "eslint-plugin-promise": "^3.6.0",
@@ -37,27 +40,18 @@
     "extract-text-webpack-plugin": "^3.0.2",
     "friendly-errors-webpack-plugin": "^1.6.1",
     "html-webpack-plugin": "^2.30.1",
-    "node-notifier": "^5.2.1",
-    "node-sass": "^4.7.2",
+    "loader": "^2.1.1",
+    "file-loader": "^1.1.4",
+    "node-sass": "^4.5.3",
     "optimize-css-assets-webpack-plugin": "^3.2.0",
+    "postcss": "^6.0.16",
     "postcss-loader": "^2.0.10",
     "sass-loader": "^6.0.6",
-    "style-loader": "^0.19.1",
-    "uglifyjs-webpack-plugin": "^1.1.6",
-    "vue-loader": "^13.7.0",
-    "vue-style-loader": "^3.0.3",
-    "vue-template-compiler": "^2.5.13",
-    "webpack": "^3.10.0",
-    "webpack-dev-server": "^2.11.1",
-    "webpack-merge": "^4.1.1"
-  },
-  "engines": {
-    "node": ">= 6.0.0",
-    "npm": ">= 3.0.0"
-  },
-  "browserslist": [
-    "> 1%",
-    "last 2 versions",
-    "not ie <= 8"
-  ]
+    "style-loader": "^0.20.1",
+    "vue-loader": "^13.0.5",
+    "vue-style-loader": "^3.1.1",
+    "vue-template-compiler": "^2.4.4",
+    "webpack": "^3.6.0",
+    "webpack-dev-server": "^2.9.1"
+  }
 }

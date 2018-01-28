@@ -1,87 +1,15 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
     <head>
+       <meta charset="utf-8">
        <title>Connect Four !!!</title>
-       <link rel="stylesheet" href="./static/src/css/modal.css" type="text/css"/>
-       <link rel="stylesheet" href="./static/src/css/style.css" type="text/css"/>
+       <link rel="stylesheet" href="./dist/app.css">
     </head>
     <body>
-        <!-- template for the modal component -->
-        <script type="text/x-template" id="connexion-error">
-            <div slot="connexion-error">
-                Le serveur n'est pas disponible.
-            </div>
-        </script>
-        <script type="text/x-template" id="entry-template">
-          <div slot="entry">
-            <div class="modal-header">
-                <slot name="header">
-                  {{ users_nb }} inscrit(s) en ligne
-                </slot>
-              </div>
-              <div class="modal-body">
-                  <label for="login">Identifiant : </label>
-                  <input id="login" type="text" @input="chooseLogin" />
-              </div>
-              <div class="modal-footer">
-                  <button class="left" :disabled="isDisabled" v-on:click="selectOpponent">
-                    Sélectionner un adversaire
-                  </button>
-                  <button class="right" :disabled="isDisabled" @click="selectRandomOpponent">
-                    Choisir un adversaire au hasard
-                  </button>
-              </div>
-          </div>
-        </script>
-        <script type="text/x-template" id="user-list-template">
-          <table slot="user-list">
-            <thead>
-              <tr>
-                <th>Utilisateur(s) connecté(s)</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="ligne in logins">
-                <td>
-                  {{ ligne }}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </script>
-        <script type="text/x-template" id="modal-template">
-          <transition name="modal">
-            <div class="modal-mask">
-              <div class="modal-wrapper">
-                <div class="modal-container">
-                    <template v-if="!server.enabled">
-                        <connexion-error>
-                          <slot name="connexion-error"></slot>
-                        </connexion-error>
-                    </template>
-                    <template v-if="isShow">
-                        <entry v-on:selectOpponent="getOpponent" v-on:selectRandomOpponent="getRandomOpponent" :users_nb="server.users_nb">
-                          <slot></slot>
-                        </entry>
-                    </template>
-                    <template v-if="showUserList">
-                        <user-list>
-                            <slot name="user-list"></slot>
-                        </user-list>
-                    </template>
-                </div>
-              </div>
-            </div>
-          </transition>
-        </script>
       <div id="content">
           <div id="app">
-              <modal v-if="showModal" @close="showModal = false" :server="server">
-                  <connexion-error>
-                  <entry>
-                  <user-list>
-              </modal>
           </div>
+        <!--
         <svg xmlns="http://www.w3.org/2000/svg" viewbox="0 0 744.9650083184242 674.2500295639038"
         version="1">
         <g id="arrow">
@@ -165,13 +93,9 @@
             </rect>
           </g>
         </svg>
+        -->
       </div>
-      <script src="./static/node_modules/vue/dist/vue.js"></script>
-      <script src="./static/public/server.js"></script>
-      <script src="./static/public/user.js"></script>
-      <script src="./static/public/ws.js"></script>
-      <script src="./static/public/ws_events.js"></script>
-      <script src="./static/public/modal.js"></script>
+      <script src="./dist/app.js"></script>
       <!--<script src="https://cdnjs.cloudflare.com/ajax/libs/msgpack-lite/0.1.26/msgpack.min.js"></script>
       <script src="./static/axios.js"></script>-->
     </body>

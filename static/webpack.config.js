@@ -1,40 +1,74 @@
 "use strict"
-const webpack = require("webpack");
-const path = require("path");
-const ExtractTextPlugin = require("extract-text-webpack-plugin");
-const UglifyJSPlugin = require('uglifyjs-webpack-plugin');
+const path = require('path')
+const webpack = require('webpack')
+const ExtractTextPlugin = require("extract-text-webpack-plugin")
+const UglifyJSPlugin = require('uglifyjs-webpack-plugin')
+const dev = process.env.NODE_ENV == "dev"
 
-let config = {
+function resolve (dir) {
+  return path.join(__dirname, '..', dir)
+}
+
+let cssLoaders = [
+ {loader: 'css-loader', options: {importLoaders: 1, minimize: !dev} }
+]
+
+if (!dev) {
+  cssLoaders.push({
+    loader: 'postcss-loader',
+    options: {
+      plugins: (loader) => [
+        require('autoprefixer')({
+          browsers: ['last 2 versions', 'ie >= 11']
+        })
+      ]
+    }
+  })
+}
+
+module.exports = {
   entry: {
-      "modal": "./src/js/modal.js",
-      "server": "./src/js/server.js",
-      "user": "./src/js/user.js",
-      "ws": "./src/js/ws.js",
-      "ws_events": "./src/js/ws_events.js"
+      app: ["./src/scss/app.scss", "./src/js/main.js"]
   },
   output: {
-    path: path.resolve(__dirname, "./public"),
-    filename: "./[name].js",
-    library: '[name]'
+    path: path.resolve(__dirname, './dist'),
+    publicPath: '/dist/',
+    filename: '[name].js'
   },
   module: {
     rules: [
       {
         test: /\.js$/,
-        exclude: /node_modules/,
-        loader: ["babel-loader"]
+        loader: 'babel-loader',
+        exclude: /node_modules/
+      },
+      {
+        test: /\.css$/,
+        use: ExtractTextPlugin.extract({
+            fallback: "style-loader",
+            use: cssLoaders
+        })
       },
       {
         test: /\.scss$/,
-        loader: ['style-loader', 'css-loader', 'sass-loader', 'postcss-loader']
+        use : ExtractTextPlugin.extract({
+            fallback: "style-loader",
+            use: [
+               ...cssLoaders,
+               'sass-loader'
+            ]
+        })
       },
       {
         test: /\.vue$/,
         loader: 'vue-loader',
         options: {
           loaders: {
-            'scss': 'vue-style-loader!css-loader!sass-loader',
-            'sass': 'vue-style-loader!css-loader!sass-loader?indentedSyntax'
+            'scss': [
+              'vue-style-loader',
+              'css-loader',
+              'sass-loader'
+            ]
           }
         }
       },
@@ -46,7 +80,48 @@ let config = {
         }
       }
     ]
-  }
+  },
+  resolve: {
+    alias: {
+      'vue$': 'vue/dist/vue.esm.js'
+    },
+    extensions: ['*', '.js', '.vue', '.json']
+  },
+  devServer: {
+    historyApiFallback: true,
+    noInfo: true,
+    overlay: true
+  },
+  performance: {
+    hints: false
+  },
+  //devtool: '#eval-source-map',
+  devtool: dev ? "cheap-module-eval-source-map" : false,
+  plugins: [
+    new ExtractTextPlugin({
+        filename: '[name].css',
+        disable: dev
+    })
+  ]
 }
 
-module.exports = config;
+if (!dev) {
+  module.exports.devtool = '#source-map'
+  // http://vue-loader.vuejs.org/en/workflow/production.html
+  module.exports.plugins = (module.exports.plugins || []).concat([
+    new webpack.DefinePlugin({
+      'process.env': {
+        NODE_ENV: '"production"'
+      }
+    }),
+    new webpack.optimize.UglifyJsPlugin({
+      sourceMap: true,
+      compress: {
+        warnings: false
+      }
+    }),
+    new webpack.LoaderOptionsPlugin({
+      minimize: true
+    })
+  ])
+}
