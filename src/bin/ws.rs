@@ -32,12 +32,6 @@ const PING_TIME: u64 = 10_000;
 
 type MessageLog = Rc<RefCell<Vec<LogMessage>>>;
 type Users      = Rc<RefCell<HashMap<u32, WSUser>>>;
-type Senders    = Rc<RefCell<HashMap<i32, ws::Sender>>>;
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-struct Connected {
-    path: String
-}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct Wrapper {
@@ -104,7 +98,6 @@ impl Message {
 }
 
 pub struct ConnectFourDataBaseStruct {
-    //pub connection: PgConnection
     pub connection: SqliteConnection
 }
 
@@ -136,7 +129,7 @@ impl ConnectFourDataBase for ConnectFourDataBaseStruct {
             .filter(connected.eq(true))
             .first(&self.connection) {
              Ok(v) => v,
-             Err(e) => 0
+             Err(_) => 0
         }
     }
     
@@ -167,7 +160,7 @@ impl ConnectFourDataBase for ConnectFourDataBaseStruct {
         use connect_four::schema::users::*;
         let query_fragment = connect_four::schema::users::dsl::users.filter(
             ws_id.eq(ws_id_to_test)).limit(1);
-        let mut u = query_fragment.load::<User>(&self.connection)
+        let u = query_fragment.load::<User>(&self.connection)
         .expect("Error loading posts");
         !u.is_empty()
     }
@@ -188,7 +181,7 @@ impl ConnectFourDataBase for ConnectFourDataBaseStruct {
                     r.pop()
                 }
             },
-            Err(e) => None
+            Err(_) => None
         }
     }
 
@@ -201,13 +194,14 @@ impl ConnectFourDataBase for ConnectFourDataBaseStruct {
         match result {
             Ok(r) => {
                 if r.is_empty() {
+					println!("ok");
                     None
                 }
                 else {
                     Some(r)
                 }
             },
-            Err(e) => None
+            Err(_) => None
         }
     }
     
@@ -229,7 +223,7 @@ impl ConnectFourDataBase for ConnectFourDataBaseStruct {
                     }
                 }
             },
-            Err(e) => None
+            Err(_) => None
         }
     }
 
@@ -276,7 +270,6 @@ struct ChatHandler {
     nick: Option<String>,
     message_log: MessageLog,
     users: Users,
-    //senders: Senders,
     not_playing_uuid:  Option<RefCell<String>>
 }
 
@@ -329,18 +322,28 @@ impl ws::Handler for ChatHandler {
         }
         Ok(res)
     }
-
     fn on_message(&mut self, msg: ws::Message) -> ws::Result<()> {
         if let Ok(text_msg) = msg.clone().as_text() {
-            if let Ok(path) = serde_json::from_str::<Connected>(text_msg) {
-                return self.out.send(format!("{}",
-                    json!({
-                        "path": "connected",
-                        "users_nb": self.db.count_users()
-                    })
-                ));
-            }
+            println!("debug {:?}", text_msg);
             if let Ok(wrapper) = serde_json::from_str::<Wrapper>(text_msg) {
+                 println!("unwrap {:?}", wrapper.path);
+                 if wrapper.path == "connected" {
+                    println!("connected");
+                    return self.out.send(format!("{}",
+                        json!({
+                            "path": "connected",
+                            "users_nb": self.db.count_users()
+                        })
+                    ));
+                }
+                if wrapper.path == "user-list" {
+                    return self.out.send(format!("{}",
+                        json!({
+                            "path": "user-list",
+                            "users": serde_json::to_value(self.db.get_connected_users()).unwrap()
+                        })
+                    ));
+                }
                 let id = self.out.connection_id();
                 if let Ok(join) = serde_json::from_value::<Join>(wrapper.content.clone()) {
                     // first : give the alone user id
@@ -372,7 +375,7 @@ impl ws::Handler for ChatHandler {
                                     "color": DiscColor::Yellow,
                                     "opponent_color": DiscColor::Red
                                 })
-                            ));
+                            )).unwrap();
                             return self.out.send(format!("{}",
                                 json!({
                                     "path": "game_start",
@@ -381,7 +384,7 @@ impl ws::Handler for ChatHandler {
                                     "color": DiscColor::Red,
                                     "opponent_color": DiscColor::Yellow
                                 })
-                            ));
+                            ))
                         }
                         None => {
                             /* Keep user in waiting */
@@ -401,9 +404,9 @@ impl ws::Handler for ChatHandler {
                 }
                 if let Ok(play) = serde_json::from_value::<Play>(wrapper.content.clone()) {
                     let game = self.db.play_with(id).unwrap();
-                    let colorInt = self.users.borrow().get(&id).unwrap().color.clone() as i8;
+                    let color_int = self.users.borrow().get(&id).unwrap().color.clone() as i8;
                     let mut grid: Grid = serde_json::from_str(&game.serialize_grid.unwrap()).unwrap();
-                    grid.update(play.disc_x as usize, play.disc_y as usize, colorInt);
+                    grid.update(play.disc_x as usize, play.disc_y as usize, color_int);
                     let mut second_player_id = game.id_player1;
                     if id == game.id_player1 as u32 {
                         second_player_id = game.id_player2;
@@ -413,7 +416,7 @@ impl ws::Handler for ChatHandler {
                         &grid.grid,
                         play.disc_x as usize,
                         play.disc_y as usize, 
-                        colorInt
+                        color_int
                     ) {
                         true => {
                             self.out.send_to(second_player_id as u32, format!("{}",
@@ -422,12 +425,12 @@ impl ws::Handler for ChatHandler {
                                     "x": play.disc_x
                                     
                                 })
-                            ));
+                            )).unwrap();
                             return self.out.send(format!("{}",
                                 json!({
                                     "path": "win"
                                 })
-                            ));
+                            ))
                         },
                         false => {
                             self.out.send_to(second_player_id as u32, format!("{}",
@@ -435,12 +438,12 @@ impl ws::Handler for ChatHandler {
                                     "path": "play",
                                     "x": play.disc_x
                                 })
-                            ));
+                            )).unwrap();
                             return self.out.send(format!("{}",
                                 json!({
                                     "path": "has_played"
                                 })
-                            ));
+                            ))
                         }
                     }
                 }
@@ -517,7 +520,6 @@ fn main () {
             nick: None,
             message_log: message_log.clone(),
             users: _users.clone(),
-            //senders: _senders.clone(),
             not_playing_uuid: None
         }
     }) {

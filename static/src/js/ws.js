@@ -48,13 +48,17 @@ function on_connected(nickname) {
   console.log("user : " + nickname + " joined game")
 }
 
+function on_get_users() {
+    server.users = [ "dfhdhg"]
+}
+
 class WS {
   constructor (port) {
     let websocket = new WebSocket('ws:/' + location.hostname + ':' + port)
     this.websocket = websocket
     websocket.onopen = function (evt) {
-      server.enabled = true
-      let wrapper = JSON.stringify({'path': 'connected'})
+      server.enabled = true   
+      let wrapper = JSON.stringify({'path': 'connected', 'content': {}})
       websocket.send(wrapper)
     }
     this.result = websocket.onmessage = this.onmessage
@@ -69,7 +73,10 @@ class WS {
     try {
       let data = JSON.parse(evt.data)
       if (data.path === 'connected')
-          WS.on_connected(data.users_nb)
+        return WS.on_connected(data.users_nb)
+      else if (data.path === 'user-list') {
+        return WS.on_user_list(data.users)
+      }
     }
     catch (e) {
       write('Le serveur envoie (' + evt.data + ')')
@@ -79,8 +86,18 @@ class WS {
   static on_connected (users_nb) {
     server.users_nb = users_nb
   }
+  
+  static on_user_list (users) {
+      server.users = users
+  }
+  
+  get_list_users () {
+    let wrapper = JSON.stringify({'path': 'user-list', 'content': {}})
+    this.websocket.send(wrapper)
+  }
 
   join (nickname) {
+    debugger
     let join    = {'join_nick': nickname}
     let wrapper = JSON.stringify({'path': 'joined', 'content': join})
     this.websocket.send(wrapper)
@@ -88,3 +105,5 @@ class WS {
 }
 
 let ws = new WS(3012)
+
+export { ws }

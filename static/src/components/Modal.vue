@@ -13,7 +13,7 @@
                 </entry>
             </template>
             <template v-if="showUserList">
-                <user-list>
+                <user-list :users="server.users">
                     <slot name="user-list"></slot>
                 </user-list>
             </template>

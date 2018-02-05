@@ -5,7 +5,7 @@ table! {
         uuid -> Text,
         admin -> Bool,
         login -> Text,
-        passw -> Text,
+        passw -> Nullable<Text>,
         points -> Integer,
         connected -> Bool,
         playing -> Bool,

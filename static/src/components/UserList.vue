@@ -1,14 +1,18 @@
 <template>
-  <table slot="user-list">
+  <table >
     <thead>
       <tr>
         <th>Utilisateur(s) connecté(s)</th>
+        <th></th>
       </tr>
     </thead>
     <tbody>
-      <tr v-for="ligne in logins">
+      <tr v-for="user in users">
         <td>
-          {{ ligne }}
+          {{ user.login }}
+        </td>
+        <td>
+            <button>Jouer</button>
         </td>
       </tr>
     </tbody>
@@ -17,19 +21,25 @@
 
 <script>
 import server from '../js/server'
+import { ws } from '../js/ws'
 
 export default {
   name: 'user-list',
-  data: function () {
-    return {
-      logins: [
-        "Déborah",
-        "Papounet"
-      ]      
-    }
+  props: {
+    users: Array
   },
-  mounted: {
-  
+  mounted: function() {
+     ws.get_list_users()
   }
 }
 </script>
+
+<style lang="scss">
+  table {
+    border-collapse: collapse;
+    border: solid 1px grey;
+    td {
+    border: solid 1px grey;
+    }
+  }
+</style>
