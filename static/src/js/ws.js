@@ -1,17 +1,8 @@
-import user from './user'
+import { user } from './user'
 import server from './server'
 
 function on_join(nickname) {
   console.log("user : " + nickname + " joined game")
-}
-
-function on_game_start(data) {
-  console.log("game start ! user play : " + !data.begin)
-  user.color          = data.color;
-  user.opponent_color = data.opponent_color
-  user.opponent_nick  = data.opponent
-  user.wait_opponent  = false
-  user.wait_playing   = !data.begin
 }
 
 function on_play(data) {
@@ -74,8 +65,14 @@ class WS {
       let data = JSON.parse(evt.data)
       if (data.path === 'connected')
         return WS.on_connected(data.users_nb)
-      else if (data.path === 'user-list') {
+      else if (data.path === 'has_joined') {
+        return WS.get_list_users(this)
+      }
+      else if (data.path === 'user_list') {
         return WS.on_user_list(data.users)
+      }
+      else if (data.path === 'game_start') {   
+        return WS.on_game_start(data)
       }
     }
     catch (e) {
@@ -87,20 +84,41 @@ class WS {
     server.users_nb = users_nb
   }
   
+  static get_list_users (websocket) {
+    let wrapper = JSON.stringify({'path': 'user_list', 'content': {}})
+    websocket.send(wrapper)
+  }
+  
   static on_user_list (users) {
       server.users = users
   }
   
-  get_list_users () {
-    let wrapper = JSON.stringify({'path': 'user-list', 'content': {}})
-    this.websocket.send(wrapper)
+  static on_game_start(data) {
+      console.log("game start ! user play : " + !data.begin)
+      user.color          = data.color
+      user.opponent_color = data.opponent_color
+      user.opponent_nick  = data.opponent
+      user.wait_opponent  = false
+      user.wait_playing   = false
+      console.log(user)
+      debugger
   }
 
   join (nickname) {
-    debugger
-    let join    = {'join_nick': nickname}
-    let wrapper = JSON.stringify({'path': 'joined', 'content': join})
+    let join    = { 'join_nick': nickname }
+    let wrapper = JSON.stringify({'path': 'join', 'content': join})
     this.websocket.send(wrapper)
+  }
+  
+  play_with (id, nick, opponent_nick) {
+    let user    = { 'user_id': id, 'nick': nick, 'opponent_nick': opponent_nick }
+    let wrapper = JSON.stringify({'path': 'play_with', 'content': user})
+    this.websocket.send(wrapper) 
+  }
+  
+  play_random_user () {
+    let wrapper = JSON.stringify({'path': 'play_random_user', 'content': {}})
+    this.websocket.send(wrapper) 
   }
 }
 

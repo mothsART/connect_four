@@ -50,6 +50,13 @@ struct Join {
     join_nick: String
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+struct PlayWith {
+    user_id: i32,
+    nick: String,
+    opponent_nick: String
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, Hash, Eq, PartialEq)]
 struct WSUser {
     name:    Option<String>,
@@ -150,7 +157,8 @@ impl ConnectFourDataBase for ConnectFourDataBaseStruct {
                     playing:   false
                 };
                 diesel::insert_into(users)
-                .values(&new_user);
+                .values(&new_user)
+                .execute(&self.connection);
                 uuid
             }
         }
@@ -194,7 +202,6 @@ impl ConnectFourDataBase for ConnectFourDataBaseStruct {
         match result {
             Ok(r) => {
                 if r.is_empty() {
-					println!("ok");
                     None
                 }
                 else {
@@ -324,11 +331,10 @@ impl ws::Handler for ChatHandler {
     }
     fn on_message(&mut self, msg: ws::Message) -> ws::Result<()> {
         if let Ok(text_msg) = msg.clone().as_text() {
-            println!("debug {:?}", text_msg);
+            //println!("debug {:?}", text_msg);
             if let Ok(wrapper) = serde_json::from_str::<Wrapper>(text_msg) {
-                 println!("unwrap {:?}", wrapper.path);
+                 println!("unwrap {:?}", wrapper);
                  if wrapper.path == "connected" {
-                    println!("connected");
                     return self.out.send(format!("{}",
                         json!({
                             "path": "connected",
@@ -336,16 +342,49 @@ impl ws::Handler for ChatHandler {
                         })
                     ));
                 }
-                if wrapper.path == "user-list" {
+                if wrapper.path == "user_list" {
                     return self.out.send(format!("{}",
                         json!({
-                            "path": "user-list",
+                            "path": "user_list",
                             "users": serde_json::to_value(self.db.get_connected_users()).unwrap()
                         })
                     ));
                 }
                 let id = self.out.connection_id();
                 if let Ok(join) = serde_json::from_value::<Join>(wrapper.content.clone()) {
+                    let join_nick = join.join_nick.clone();
+                    self.db.insert_user(id, join_nick.clone());
+                    return self.out.send(format!("{}",
+                        json!({
+                            "path": "has_joined"
+                        })
+                    ));
+                }
+                if let Ok(play_with) = serde_json::from_value::<PlayWith>(wrapper.content.clone()) {
+                    /* Create a game and start it ! */
+                    let grid = Grid::new();
+                    println!("{:?}", wrapper);
+                    self.db.insert_game(id, play_with.user_id as u32, grid);
+                    self.out.send_to(play_with.user_id as u32, format!("{}",
+                        json!({
+                            "path": "game_start",
+                            "opponent": play_with.nick.clone(),
+                            "begin": true,
+                            "color": DiscColor::Yellow,
+                            "opponent_color": DiscColor::Red
+                        })
+                    )).unwrap();
+                    return self.out.send(format!("{}",
+                        json!({
+                            "path": "game_start",
+                            "opponent": play_with.opponent_nick,
+                            "begin": false,
+                            "color": DiscColor::Red,
+                            "opponent_color": DiscColor::Yellow
+                        })
+                    ))
+                }
+                /*if let Ok(join) = serde_json::from_value::<Join>(wrapper.content.clone()) {
                     // first : give the alone user id
                     let user_alone = self.db.get_user_ws_id();
                     let join_nick = join.join_nick.clone();
@@ -401,7 +440,7 @@ impl ws::Handler for ChatHandler {
                             ));
                         }
                     }
-                }
+                }*/
                 if let Ok(play) = serde_json::from_value::<Play>(wrapper.content.clone()) {
                     let game = self.db.play_with(id).unwrap();
                     let color_int = self.users.borrow().get(&id).unwrap().color.clone() as i8;

@@ -21,6 +21,8 @@
 </template>
 
 <script>
+import { user } from '../js/user'
+
 export default {
   name: 'entry',
   props: {
@@ -39,10 +41,11 @@ export default {
       this.$emit('selectRandomOpponent')
     },
     chooseLogin: function (e) {
+      user.nick = e.target.value
       if (e.target.value)
         this.isDisabled = null
       else
-        this.isDisabled = 'disabled';
+        this.isDisabled = 'disabled'
     }
   }
 }

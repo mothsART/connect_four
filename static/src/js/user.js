@@ -8,14 +8,19 @@ let grid = [
   [null, null, null, null, null, null]
 ]
 
-let user = {
-  nick: null,
-  opponent_nick:  null,
-  color:          null,
-  opponent_color: null,
-  wait_opponent:  true,
-  wait_playing:   true
+class User {
+  constructor () {
+    this.nick           = null
+    this.opponent_nick  = null;
+    this.color          = null;
+    this.opponent_color = null;
+    this.wait_opponent  = true;
+    this.wait_playing   = true;
+  }
 }
+
+let user = new User()
+export { user }
 
 function col_over(element) {
   var col_index = parseInt(element.id.substr(4))
@@ -71,10 +76,3 @@ function col_clic(element) {
     }
   }))
 }
-
-module.exports = {
-  col_out: col_out,
-  col_over: col_over,
-  col_clic: col_clic
-}
-

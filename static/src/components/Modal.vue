@@ -1,5 +1,5 @@
 <template>
-    <div class="modal-mask">
+    <div class="modal-mask" v-if="modalIsShow">
       <div class="modal-wrapper">
         <div class="modal-container">
             <template v-if="!server.enabled">
@@ -7,7 +7,7 @@
                   <slot name="connexion-error"></slot>
                 </connexion-error>
             </template>
-            <template v-if="isShow">
+            <template v-if="entryIsShow">
                 <entry v-on:selectOpponent="getOpponent" v-on:selectRandomOpponent="getRandomOpponent" :users_nb="server.users_nb">
                   <slot></slot>
                 </entry>
@@ -23,6 +23,7 @@
 </template>
 
 <script>
+import { user } from '../js/user'
 import server from '../js/server'
 import ConnexionError from './ConnexionError.vue'
 import Entry from './Entry.vue'
@@ -33,13 +34,17 @@ export default {
   components: { ConnexionError, Entry, UserList },
   data: function () {
     return {
+      user: user,
       server: server,
       showEntry: true,
       showUserList: false
     }
   },
   computed: {
-    isShow: function () {
+    modalIsShow: function() {
+      return user.wait_opponent || user.wait_playing
+    },
+    entryIsShow: function () {
       return this.server.enabled && this.showEntry
     }
   },

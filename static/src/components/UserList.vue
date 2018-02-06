@@ -12,7 +12,7 @@
           {{ user.login }}
         </td>
         <td>
-            <button>Jouer</button>
+            <button @click="play_with(user.id, user.login)">Jouer</button>
         </td>
       </tr>
     </tbody>
@@ -20,6 +20,7 @@
 </template>
 
 <script>
+import { user } from '../js/user'
 import server from '../js/server'
 import { ws } from '../js/ws'
 
@@ -29,7 +30,12 @@ export default {
     users: Array
   },
   mounted: function() {
-     ws.get_list_users()
+     ws.join(user.nick)
+  },
+  methods: {
+    play_with (id, opponent_nick) {
+      ws.play_with(id, user.nick, opponent_nick)
+    }
   }
 }
 </script>
