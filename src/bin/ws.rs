@@ -330,14 +330,15 @@ impl ws::Handler for ChatHandler {
         Ok(res)
     }
     fn on_message(&mut self, msg: ws::Message) -> ws::Result<()> {
+        let id = self.out.connection_id();
         if let Ok(text_msg) = msg.clone().as_text() {
             //println!("debug {:?}", text_msg);
             if let Ok(wrapper) = serde_json::from_str::<Wrapper>(text_msg) {
-                 println!("unwrap {:?}", wrapper);
                  if wrapper.path == "connected" {
                     return self.out.send(format!("{}",
                         json!({
                             "path": "connected",
+                            "user_id": id,
                             "users_nb": self.db.count_users()
                         })
                     ));
@@ -350,7 +351,6 @@ impl ws::Handler for ChatHandler {
                         })
                     ));
                 }
-                let id = self.out.connection_id();
                 if let Ok(join) = serde_json::from_value::<Join>(wrapper.content.clone()) {
                     let join_nick = join.join_nick.clone();
                     self.db.insert_user(id, join_nick.clone());
@@ -363,7 +363,6 @@ impl ws::Handler for ChatHandler {
                 if let Ok(play_with) = serde_json::from_value::<PlayWith>(wrapper.content.clone()) {
                     /* Create a game and start it ! */
                     let grid = Grid::new();
-                    println!("{:?}", wrapper);
                     self.db.insert_game(id, play_with.user_id as u32, grid);
                     self.out.send_to(play_with.user_id as u32, format!("{}",
                         json!({

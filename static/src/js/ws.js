@@ -64,7 +64,7 @@ class WS {
     try {
       let data = JSON.parse(evt.data)
       if (data.path === 'connected')
-        return WS.on_connected(data.users_nb)
+        return WS.on_connected(data.user_id, data.users_nb)
       else if (data.path === 'has_joined') {
         return WS.get_list_users(this)
       }
@@ -80,7 +80,8 @@ class WS {
     }
   }
   
-  static on_connected (users_nb) {
+  static on_connected (user_id, users_nb) {
+    user.id = user_id
     server.users_nb = users_nb
   }
   
@@ -90,7 +91,12 @@ class WS {
   }
   
   static on_user_list (users) {
-      server.users = users
+      let index = users.findIndex(function (element) {
+        if (element.ws_id == user.id) {
+          return element
+        }
+      })
+      server.users = users.splice(0, index)
   }
   
   static on_game_start(data) {

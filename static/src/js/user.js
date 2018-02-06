@@ -10,12 +10,13 @@ let grid = [
 
 class User {
   constructor () {
+	this.id             = 0
     this.nick           = null
-    this.opponent_nick  = null;
-    this.color          = null;
-    this.opponent_color = null;
-    this.wait_opponent  = true;
-    this.wait_playing   = true;
+    this.opponent_nick  = null
+    this.color          = null
+    this.opponent_color = null
+    this.wait_opponent  = true
+    this.wait_playing   = true
   }
 }
 
