@@ -13,14 +13,14 @@ pub struct User {
     pub playing:   bool
 }
 
-#[derive(Insertable)]
+#[derive(Insertable, Serialize)]
 #[table_name="users"]
 pub struct NewUser<'a> {
     pub ws_id:     i32,
     pub uuid:      &'a str,
     pub admin:     bool,
     pub login:     &'a str,
-    pub points:    i32,    
+    pub points:    i32,
     pub connected: bool,
     pub playing:   bool
 }

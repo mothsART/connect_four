@@ -17,6 +17,12 @@
                     <slot name="user-list"></slot>
                 </user-list>
             </template>
+            <template v-if="agreeQuestion">
+                <div>Est-vous d'accord ?</div>
+            </template>
+            <template v-if="waitAgree">
+                <div>En attente d'accord</div>
+            </template>
         </div>
       </div>
     </div>
@@ -46,6 +52,12 @@ export default {
     },
     entryIsShow: function () {
       return this.server.enabled && this.showEntry
+    },
+    agreeQuestion: function () {
+      return this.user.agree_uestion
+    },
+    waitAgree: function () {
+      return this.user.wait_agree
     }
   },
   methods: {

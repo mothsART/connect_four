@@ -66,7 +66,12 @@ class WS {
       if (data.path === 'connected')
         return WS.on_connected(data.user_id, data.users_nb)
       else if (data.path === 'has_joined') {
-        return WS.get_list_users(this)
+        if (data.user.ws_id == user.id) {
+          return WS.get_list_users(this)
+        }
+        else {
+            return WS.add_on_user_list(data.user)
+        }
       }
       else if (data.path === 'user_list') {
         return WS.on_user_list(data.users)
@@ -91,12 +96,18 @@ class WS {
   }
   
   static on_user_list (users) {
-      let index = users.findIndex(function (element) {
+      let element = users.findIndex(function (element) {
         if (element.ws_id == user.id) {
           return element
         }
       })
-      server.users = users.splice(0, index)
+      let index = users.indexOf(element)
+      users.splice(index, 1)
+      server.users = users
+  }
+  
+  static add_on_user_list(user) {
+     server.users.push(user)
   }
   
   static on_game_start(data) {
@@ -107,7 +118,6 @@ class WS {
       user.wait_opponent  = false
       user.wait_playing   = false
       console.log(user)
-      debugger
   }
 
   join (nickname) {

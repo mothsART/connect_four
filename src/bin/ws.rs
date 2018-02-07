@@ -57,6 +57,11 @@ struct PlayWith {
     opponent_nick: String
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+struct Agree {
+	response: bool
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, Hash, Eq, PartialEq)]
 struct WSUser {
     name:    Option<String>,
@@ -111,7 +116,7 @@ pub struct ConnectFourDataBaseStruct {
 pub trait ConnectFourDataBase {
     fn new() -> ConnectFourDataBaseStruct;
     fn count_users(&mut self) -> i64;
-    fn insert_user(&mut self, ws_id: u32, login: String) -> String;
+    fn insert_user(&mut self, ws_id: u32, login: String) -> User;
     fn user_exists(&mut self, ws_id_to_test: i32) -> bool;
     fn get_user_ws_id(&mut self) -> Option<User>;
     fn get_connected_users(&mut self) -> Option<Vec<User>>;
@@ -140,11 +145,22 @@ impl ConnectFourDataBase for ConnectFourDataBaseStruct {
         }
     }
     
-    fn insert_user(&mut self, ws_id: u32, login: String) -> String {
+    fn insert_user(&mut self, ws_id: u32, login: String) -> User {
         let uuid = Uuid::new_v4().to_string();
+		let user = User {
+			id:        0,
+			ws_id:     ws_id as i32,
+			uuid:      uuid.clone(),
+			admin:     false,
+			points:    0,
+			login:     login.clone(),
+			passw:     None,
+			connected: true,
+			playing:   false
+		};
         match self.user_exists(ws_id as i32) {
             true => {
-                uuid
+                user
             },
             false => {
                 let new_user = NewUser {
@@ -152,14 +168,14 @@ impl ConnectFourDataBase for ConnectFourDataBaseStruct {
                     uuid:      &uuid.to_string(),
                     admin:     false,
                     points:    0,
-                    login:     &*login,
+                    login:     &login,
                     connected: true,
                     playing:   false
                 };
                 diesel::insert_into(users)
                 .values(&new_user)
                 .execute(&self.connection);
-                uuid
+                user
             }
         }
     }
@@ -349,21 +365,40 @@ impl ws::Handler for ChatHandler {
                             "path": "user_list",
                             "users": serde_json::to_value(self.db.get_connected_users()).unwrap()
                         })
-                    ));
+                    ))
                 }
                 if let Ok(join) = serde_json::from_value::<Join>(wrapper.content.clone()) {
                     let join_nick = join.join_nick.clone();
-                    self.db.insert_user(id, join_nick.clone());
-                    return self.out.send(format!("{}",
+                    let user = self.db.insert_user(id, join_nick.clone());
+                    return self.out.broadcast(format!("{}",
                         json!({
-                            "path": "has_joined"
+                            "path": "has_joined",
+                            "user": serde_json::to_value(user).unwrap()
                         })
-                    ));
+                    ))
                 }
                 if let Ok(play_with) = serde_json::from_value::<PlayWith>(wrapper.content.clone()) {
+                    self.out.send_to(play_with.user_id as u32, format!("{}",
+                        json!({
+                            "path": "agree",
+                            "opponent_nick": play_with.nick.clone(),
+                            "opponent_id": id
+                        })
+                    )).unwrap();
+                    return self.out.send(format!("{}",
+                        json!({
+                            "path": "agree",
+                            "opponent": play_with.opponent_nick,
+                            "begin": false
+                        })
+                    ))
+                }
+                /*
+                if let Ok(agree) = serde_json::from_value::<Agree>(wrapper.content.clone()) {
                     /* Create a game and start it ! */
                     let grid = Grid::new();
                     self.db.insert_game(id, play_with.user_id as u32, grid);
+                    
                     self.out.send_to(play_with.user_id as u32, format!("{}",
                         json!({
                             "path": "game_start",
@@ -383,6 +418,7 @@ impl ws::Handler for ChatHandler {
                         })
                     ))
                 }
+                */
                 /*if let Ok(join) = serde_json::from_value::<Join>(wrapper.content.clone()) {
                     // first : give the alone user id
                     let user_alone = self.db.get_user_ws_id();

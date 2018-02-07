@@ -15,6 +15,8 @@ class User {
     this.opponent_nick  = null
     this.color          = null
     this.opponent_color = null
+    this.agree_question = false
+    this.wait_agree     = false
     this.wait_opponent  = true
     this.wait_playing   = true
   }
