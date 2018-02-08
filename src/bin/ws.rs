@@ -59,7 +59,7 @@ struct PlayWith {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct Agree {
-	response: bool
+    response: bool
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Hash, Eq, PartialEq)]
@@ -119,7 +119,7 @@ pub trait ConnectFourDataBase {
     fn insert_user(&mut self, ws_id: u32, login: String) -> User;
     fn user_exists(&mut self, ws_id_to_test: i32) -> bool;
     fn get_user_ws_id(&mut self) -> Option<User>;
-    fn get_connected_users(&mut self) -> Option<Vec<User>>;
+    fn get_connected_users(&mut self, user_id: Option<u32>) -> Option<Vec<User>>;
     fn get_user_alone(&mut self) -> Option<String>;
     fn insert_game(&mut self, id_player1: u32, id_player2: u32, grid: Grid) -> bool;
     fn play_with(&mut self, id_player1: u32) -> Option<GameInProgress>;
@@ -147,17 +147,17 @@ impl ConnectFourDataBase for ConnectFourDataBaseStruct {
     
     fn insert_user(&mut self, ws_id: u32, login: String) -> User {
         let uuid = Uuid::new_v4().to_string();
-		let user = User {
-			id:        0,
-			ws_id:     ws_id as i32,
-			uuid:      uuid.clone(),
-			admin:     false,
-			points:    0,
-			login:     login.clone(),
-			passw:     None,
-			connected: true,
-			playing:   false
-		};
+        let user = User {
+            id:        0,
+            ws_id:     ws_id as i32,
+            uuid:      uuid.clone(),
+            admin:     false,
+            points:    0,
+            login:     login.clone(),
+            passw:     None,
+            connected: true,
+            playing:   false
+        };
         match self.user_exists(ws_id as i32) {
             true => {
                 user
@@ -209,12 +209,23 @@ impl ConnectFourDataBase for ConnectFourDataBaseStruct {
         }
     }
 
-    fn get_connected_users(&mut self) -> Option<Vec<User>> {
+    fn get_connected_users(&mut self, user_id: Option<u32>) -> Option<Vec<User>> {
         use connect_four::schema::users::*;
-        let result = connect_four::schema::users::dsl::users
-        .filter(connected.eq(true)
-        .and(playing.eq(false)))
-        .load::<User>(&self.connection);
+        let mut sql = connect_four::schema::users::dsl::users
+        .filter(connected.eq(true).and(playing.eq(false)))
+        .into_boxed();
+        match user_id {
+            Some(v) => {
+                sql = connect_four::schema::users::dsl::users
+                .filter(
+                    connected.eq(true)
+                    .and(playing.eq(false))
+                    .and(ws_id.ne(v as i32))
+                ).into_boxed();
+            },
+            None => {}
+        }
+        let result = sql.load::<User>(&self.connection);
         match result {
             Ok(r) => {
                 if r.is_empty() {
@@ -363,7 +374,7 @@ impl ws::Handler for ChatHandler {
                     return self.out.send(format!("{}",
                         json!({
                             "path": "user_list",
-                            "users": serde_json::to_value(self.db.get_connected_users()).unwrap()
+                            "users": serde_json::to_value(self.db.get_connected_users(Some(id))).unwrap()
                         })
                     ))
                 }

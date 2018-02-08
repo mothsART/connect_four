@@ -96,13 +96,6 @@ class WS {
   }
   
   static on_user_list (users) {
-      let element = users.findIndex(function (element) {
-        if (element.ws_id == user.id) {
-          return element
-        }
-      })
-      let index = users.indexOf(element)
-      users.splice(index, 1)
       server.users = users
   }
   
