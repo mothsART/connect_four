@@ -1,39 +1,9 @@
-import { user } from './user'
+import { user, play } from './user'
 import server from './server'
-
-function on_join(nickname) {
-  console.log("user : " + nickname + " joined game")
-}
-
-function on_play(data) {
-  "use strict"
-  console.log("play!")
-  play(user.opponent_color, data.x)
-  user.wait_playing  = false
-}
-
-function on_wait(data) {
-  console.log("wait !")
-}
-
-function on_win(data) {
-  console.log("you win!")
-  user.wait_opponent = true
-}
-
-function on_game_over(data) {
-  console.log("game over!")
-  play(user.opponent_color, data.x)
-  user.wait_opponent = true
-}
-
-function on_has_played(data) {
-  console.log("has played!")
-}
 
 export default function write(t) {
   console.log(t)
-};
+}
 
 class WS {
   constructor (port) {
@@ -74,8 +44,20 @@ class WS {
       else if (data.path === 'wait_agreement') {
         return WS.on_wait_agreement(data)
       }
-      else if (data.path === 'game_start') {   
+      else if (data.path === 'game_start') {
         return WS.on_game_start(data)
+      }
+      else if (data.path === 'play') {
+        return WS.on_play(data)
+      }
+      else if (data.path === 'has_played') {
+        return WS.on_has_played(data)
+      }
+      else if (data.path === 'game_over') {
+        return WS.on_game_over(data)
+      }
+      else if (data.path === 'win') {
+        return WS.on_win(data)
       }
     }
     catch (e) {
@@ -115,28 +97,52 @@ class WS {
   }
   
   static on_game_start(data) {
-      console.log("game start ! user play : " + !data.begin)
-      let second_user = null
-      if (user.id == data.user.id) {
-          user.color  = data.user.color
-          second_user = data.opponent
-      }
-      if (user.id == data.opponent.id) {
-          user.color  = data.opponent.color
-          second_user = data.user
-      }
-      if (!second_user) {
-          return;
-      }
-      user.opponent_nick  = second_user.nick
-      user.opponent_id    = second_user.id
-      user.agree_question = false
-      user.wait_opponent  = false
-      user.wait_agree     = false
-      user.wait_playing   = false
-      console.log(user)
+    let second_user = null
+    if (user.id == data.user.id) {
+      user.color  = data.user.color
+      user.opponent_color = data.opponent.color
+      second_user = data.opponent
+    }
+    if (user.id == data.opponent.id) {
+      user.color  = data.opponent.color
+      user.opponent_color = data.user.color
+      second_user = data.user
+    }
+    if (!second_user) {
+      return;
+    }
+    user.opponent_nick  = second_user.nick
+    user.opponent_id    = second_user.id
+    user.agree_question = false
+    user.wait_opponent  = false
+    user.wait_agree     = false
+    user.wait_playing   = false
+    console.log(user)
+  }
+  
+  static on_play(data) {
+    console.log("play!")
+    play(user.opponent_color, data.x)
+    user.wait_playing  = false
   }
 
+  static on_has_played(data) {
+    console.log("wait !")
+  }
+  
+  static on_game_over(data) {
+    console.log("game over!")
+    play(user.opponent_color, data.x)
+    user.wait_opponent = true
+    alert('game over !')
+  }
+
+  static on_win(data) {
+    console.log("you win!")
+    user.wait_opponent = true
+    console.log('you win')
+  }
+  
   get_id () {
     let wrapper = JSON.stringify({'path': 'get_id', 'content': {}})
     this.websocket.send(wrapper)
@@ -150,9 +156,9 @@ class WS {
   
   play_with (id, nick, opponent_nick) {
     let new_user = {
-        'user_id': id, 
-        'nick': nick,
-        'opponent_nick': opponent_nick 
+      'user_id': id, 
+      'nick': nick,
+      'opponent_nick': opponent_nick 
     }
     let wrapper = JSON.stringify({'path': 'play_with', 'content': new_user})
     this.websocket.send(wrapper) 
@@ -160,20 +166,21 @@ class WS {
   
   agree (id, nick, opponent_nick, response) {
     let new_user = {
-        'user_id': id,
-        'nick': nick,
-        'opponent_nick': opponent_nick,
-        'response': response
+      'user_id': id,
+      'nick': nick,
+      'opponent_nick': opponent_nick,
+      'response': response
     }
     let wrapper = JSON.stringify({'path': 'agree', 'content': new_user})
     this.websocket.send(wrapper) 
   }
   
-  play(col_index, new_y) {
+  play (col_index, new_y, color) {
     let game = {
       'id': user.game_id,
       'disc_x': col_index,
-      'disc_y': new_y
+      'disc_y': new_y,
+      'color': color
     }
     let wrapper = JSON.stringify({'path': 'play', 'content': game})
     this.websocket.send(wrapper)

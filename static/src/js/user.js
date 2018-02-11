@@ -20,15 +20,15 @@ class User {
     this.agree_question = false
     this.wait_agree     = false
     this.wait_opponent  = true
-    this.wait_playing   = true
-    this.game_id        = 0
+    this.wait_playing   = false
+    this.game_id        = 1
   }
 }
 
-let user = new User()
-export { user, grid }
-
-function play(color, col_index) {
+let play = function (color, col_index) {
+  if (!color) {
+    throw "color is not defined !"
+  }
   var col      = grid[col_index - 1].slice(0)
   var parent   = document.getElementById('discs')
   var disc     = document.getElementById('disc-template').cloneNode(true)
@@ -53,3 +53,6 @@ function play(color, col_index) {
   parent.appendChild(disc)
   return new_y
 }
+
+let user = new User()
+export { user, grid, play }

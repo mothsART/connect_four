@@ -33,6 +33,9 @@
             <template v-if="waitAgree">
                 <div>En attente d'accord de <strong>{{ user.opponent_nick }}</strong></div>
             </template>
+            <template v-if="waitPlaying">
+                <div>En attente du jeu adverse ...</div>
+            </template>
         </div>
       </div>
     </div>
@@ -71,6 +74,9 @@ export default {
     waitAgree: function () {
       this.showUserList = false
       return this.user.wait_agree
+    },
+    waitPlaying: function () {
+      return this.user.wait_playing
     }
   },
   methods: {

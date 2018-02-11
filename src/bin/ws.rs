@@ -76,7 +76,8 @@ struct WSUser {
 struct Play {
     id: i32,
     disc_x: i32,
-    disc_y: i32
+    disc_y: i32,
+    color: DiscColor
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Hash, Eq, PartialEq)]
@@ -271,7 +272,8 @@ impl ConnectFourDataBase for ConnectFourDataBaseStruct {
             serialize_grid: serde_json::to_string(&grid).unwrap()
         };
         diesel::insert_into(game_in_progress)
-        .values(&new_game);
+        .values(&new_game)
+        .execute(&self.connection);
         true
     }
     
@@ -437,68 +439,11 @@ impl ws::Handler for ChatHandler {
                         })
                     ))
                 }
-                /*if let Ok(join) = serde_json::from_value::<Join>(wrapper.content.clone()) {
-                    // first : give the alone user id
-                    let user_alone = self.db.get_user_ws_id();
-                    let join_nick = join.join_nick.clone();
-                    let uuid = self.db.insert_user(id, join_nick.clone());
-                    match user_alone {
-                        Some(second_user) => {
-                            /* Create a game and start it ! */
-                            let grid = Grid::new();
-                            self.db.insert_game(id, second_user.ws_id as u32, grid);
-                            let mut users_m  = self.users.borrow_mut();
-                            users_m.insert(id, WSUser {
-                                name: Some(join_nick.clone()),
-                                play_on: Some(second_user.id as i32),
-                                color: DiscColor::Red
-                            });
-                            /*users_m[&(second_user.id as u32)] = WSUser {
-                                name: second_user.login.clone(),
-                                play_on: Some(id as i32),
-                                color: DiscColor::Red
-                            };*/
-                            println!("exist! second user id : {}", second_user.ws_id);
-                            self.out.send_to(second_user.ws_id as u32, format!("{}",
-                                json!({
-                                    "path": "game_start",
-                                    "opponent": join_nick.clone(),
-                                    "begin": true,
-                                    "color": DiscColor::Yellow,
-                                    "opponent_color": DiscColor::Red
-                                })
-                            )).unwrap();
-                            return self.out.send(format!("{}",
-                                json!({
-                                    "path": "game_start",
-                                    "opponent": second_user.login,
-                                    "begin": false,
-                                    "color": DiscColor::Red,
-                                    "opponent_color": DiscColor::Yellow
-                                })
-                            ))
-                        }
-                        None => {
-                            /* Keep user in waiting */
-                            self.users.borrow_mut().insert(id, WSUser {
-                                name:    Some(join.join_nick),
-                                play_on: None,
-                                color:   DiscColor::Yellow
-                            });
-                            return self.out.send(format!("{}",
-                                json!({
-                                    "path": "wait",
-                                    "message": "Please wait : nobody to play actualy."
-                                })
-                            ));
-                        }
-                    }
-                }*/
                 if let Ok(play) = serde_json::from_value::<Play>(wrapper.content.clone()) {
+                    println!("{:?}", play);
                     let game = self.db.play_with(id).unwrap();
-                    let color_int = self.users.borrow().get(&id).unwrap().color.clone() as i8;
                     let mut grid: Grid = serde_json::from_str(&game.serialize_grid.unwrap()).unwrap();
-                    grid.update(play.disc_x as usize, play.disc_y as usize, color_int);
+                    grid.update(play.disc_x as usize, play.disc_y as usize, play.color.clone() as i8);
                     let mut second_player_id = game.id_player1;
                     if id == game.id_player1 as u32 {
                         second_player_id = game.id_player2;
@@ -508,7 +453,7 @@ impl ws::Handler for ChatHandler {
                         &grid.grid,
                         play.disc_x as usize,
                         play.disc_y as usize, 
-                        color_int
+                        play.color.clone() as i8
                     ) {
                         true => {
                             self.out.send_to(second_player_id as u32, format!("{}",

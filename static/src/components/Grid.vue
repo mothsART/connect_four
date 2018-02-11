@@ -83,7 +83,7 @@
 </template>
 
 <script>
-import { user, grid } from '../js/user'
+import { user, grid, play } from '../js/user'
 import { ws } from '../js/ws'
 
 export default {
@@ -104,7 +104,7 @@ export default {
         return
       var new_y = play(user.color, col_index)
       user.wait_playing = true
-      ws.play(col_index, new_y)
+      ws.play(col_index, new_y, user.color)
     }
   }
 }
