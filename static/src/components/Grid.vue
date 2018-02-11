@@ -15,19 +15,19 @@
               </g>
             </g>
           </g>
-      <g id="masks" onmouseout="user.col_out();">
+      <g id="masks" @mouseout="col_out();">
         <rect
           id="col-1"
-          onclick="user.col_clic(this);"
-          onmouseover="user.col_over(this);"
+          @click="col_clic(1);"
+          @mouseover="col_over(1);"
           y="30"
           width="112"
           height="644.2500295639038">
         </rect>
         <rect
           id="col-2"
-          onclick="user.col_clic(this);"
-          onmouseover="user.col_over(this);"
+          @click="col_clic(2);"
+          @mouseover="col_over(2);"
           y="30"
           width="104"
           height="644.2500295639038"
@@ -35,8 +35,8 @@
         </rect>
         <rect
           id="col-3"
-          onclick="user.col_clic(this);"
-          onmouseover="user.col_over(this);"
+          @click="col_clic(3);"
+          @mouseover="col_over(3);"
           y="30"
           width="104"
           height="644.2500295639038"
@@ -44,8 +44,8 @@
         </rect>
         <rect
           id="col-4"
-          onclick="user.col_clic(this);"
-          onmouseover="user.col_over(this);"
+          @click="col_clic(4);"
+          @mouseover="col_over(4);"
           y="30"
           width="104"
           height="644.2500295639038"
@@ -53,8 +53,8 @@
         </rect>
         <rect
           id="col-5"
-          onclick="user.col_clic(this);"
-          onmouseover="user.col_over(this);"
+          @click="col_clic(5);"
+          @mouseover="col_over(5);"
           y="30"
           width="104"
           height="644.2500295639038"
@@ -62,8 +62,8 @@
         </rect>
         <rect
           id="col-6"
-          onclick="user.col_clic(this);"
-          onmouseover="user.col_over(this);"
+          @click="col_clic(6);"
+          @mouseover="col_over(6);"
           y="30"
           width="104"
           height="644.2500295639038"
@@ -71,8 +71,8 @@
         </rect>
         <rect
           id="col-7"
-          onclick="user.col_clic(this);"
-          onmouseover="user.col_over(this);"
+          @click="col_clic(7);"
+          @mouseover="col_over(7);"
           y="30"
           width="112"
           height="644.2500295639038"
@@ -83,8 +83,30 @@
 </template>
 
 <script>
+import { user, grid } from '../js/user'
+import { ws } from '../js/ws'
+
 export default {
-  name: 'grid'
+  name: 'grid',
+  methods: {
+    col_over (col_index) {
+      document.getElementById('arrow').style.opacity = 1
+      var arrow_x = 112 + 104 * (col_index - 2)
+      if (col_index == 1)
+        arrow_x = 0
+      document.getElementById('arrow').style.transform = "translate(" + arrow_x + "px, 0)"
+    },
+    col_out () {
+      document.getElementById('arrow').style.opacity = 0
+    },
+    col_clic (col_index) {
+      if (user.wait_playing)
+        return
+      var new_y = play(user.color, col_index)
+      user.wait_playing = true
+      ws.play(col_index, new_y)
+    }
+  }
 }
 </script>
 

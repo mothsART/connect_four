@@ -59,6 +59,9 @@ struct PlayWith {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct Agree {
+    user_id: i32,
+    nick: String,
+    opponent_nick: String,
     response: bool
 }
 
@@ -359,8 +362,15 @@ impl ws::Handler for ChatHandler {
     fn on_message(&mut self, msg: ws::Message) -> ws::Result<()> {
         let id = self.out.connection_id();
         if let Ok(text_msg) = msg.clone().as_text() {
-            //println!("debug {:?}", text_msg);
             if let Ok(wrapper) = serde_json::from_str::<Wrapper>(text_msg) {
+                 if wrapper.path == "get_id" {
+                    return self.out.send(format!("{}",
+                        json!({
+                            "path": "get_id",
+                            "id": id
+                        })
+                    ))
+                }
                  if wrapper.path == "connected" {
                     return self.out.send(format!("{}",
                         json!({
@@ -368,7 +378,7 @@ impl ws::Handler for ChatHandler {
                             "user_id": id,
                             "users_nb": self.db.count_users()
                         })
-                    ));
+                    ))
                 }
                 if wrapper.path == "user_list" {
                     return self.out.send(format!("{}",
@@ -388,48 +398,45 @@ impl ws::Handler for ChatHandler {
                         })
                     ))
                 }
-                if let Ok(play_with) = serde_json::from_value::<PlayWith>(wrapper.content.clone()) {
-                    self.out.send_to(play_with.user_id as u32, format!("{}",
-                        json!({
-                            "path": "agree",
-                            "opponent_nick": play_with.nick.clone(),
-                            "opponent_id": id
-                        })
-                    )).unwrap();
-                    return self.out.send(format!("{}",
-                        json!({
-                            "path": "agree",
-                            "opponent": play_with.opponent_nick,
-                            "begin": false
-                        })
-                    ))
+                if wrapper.path == "play_with" {
+                  let play_with = serde_json::from_value::<PlayWith>(wrapper.content.clone()).unwrap();
+                  println!("{:?} {}", play_with, id);
+                  self.out.send_to(play_with.user_id as u32, format!("{}",
+                    json!({
+                        "path": "game_request",
+                        "opponent_nick": play_with.nick.clone(),
+                        "opponent_id": id
+                    })
+                  )).unwrap();
+                  return self.out.send(format!("{}",
+                    json!({
+                        "path": "wait_agreement",
+                        "opponent_nick": play_with.opponent_nick
+                    })
+                  ))
                 }
-                /*
-                if let Ok(agree) = serde_json::from_value::<Agree>(wrapper.content.clone()) {
+                if wrapper.path == "agree" {
+                    let agree = serde_json::from_value::<Agree>(wrapper.content.clone()).unwrap();
+                    println!("agree {:?}", agree);
                     /* Create a game and start it ! */
                     let grid = Grid::new();
-                    self.db.insert_game(id, play_with.user_id as u32, grid);
-                    
-                    self.out.send_to(play_with.user_id as u32, format!("{}",
+                    self.db.insert_game(id, agree.user_id as u32, grid);
+                    return self.out.broadcast(format!("{}",
                         json!({
                             "path": "game_start",
-                            "opponent": play_with.nick.clone(),
-                            "begin": true,
-                            "color": DiscColor::Yellow,
-                            "opponent_color": DiscColor::Red
-                        })
-                    )).unwrap();
-                    return self.out.send(format!("{}",
-                        json!({
-                            "path": "game_start",
-                            "opponent": play_with.opponent_nick,
-                            "begin": false,
-                            "color": DiscColor::Red,
-                            "opponent_color": DiscColor::Yellow
+                            "user": {
+                                "id": agree.user_id,
+                                "nick": agree.nick.clone(),
+                                "color": DiscColor::Red
+                            },
+                            "opponent": {
+                                "id": id,
+                                "nick": agree.opponent_nick,
+                                "color": DiscColor::Yellow
+                            }
                         })
                     ))
                 }
-                */
                 /*if let Ok(join) = serde_json::from_value::<Join>(wrapper.content.clone()) {
                     // first : give the alone user id
                     let user_alone = self.db.get_user_ws_id();

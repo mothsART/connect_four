@@ -1,22 +1,25 @@
 <template>
-  <table >
-    <thead>
-      <tr>
-        <th>Utilisateur(s) connecté(s)</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr v-for="user in users">
-        <td>
-          {{ user.login }}
-        </td>
-        <td>
-            <button @click="play_with(user.id, user.login)">Jouer</button>
-        </td>
-      </tr>
-    </tbody>
-  </table>
+  <div>
+    <table>
+      <thead>
+        <tr>
+          <th>Utilisateur(s) connecté(s)</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="user in users">
+          <td>
+            {{ user.login }}
+          </td>
+          <td>
+              <button @click="play_with(user.ws_id, user.login)">Jouer</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <button @click="get_id()">Donne Id</button>
+  </div>
 </template>
 
 <script>
@@ -35,7 +38,10 @@ export default {
   methods: {
     play_with (id, opponent_nick) {
       ws.play_with(id, user.nick, opponent_nick)
-    }
+    },
+    get_id () {
+	  ws.get_id()
+	}
   }
 }
 </script>

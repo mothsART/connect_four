@@ -10,8 +10,10 @@ let grid = [
 
 class User {
   constructor () {
-	this.id             = 0
+    this.id             = 0
+    this.ws_id          = 0
     this.nick           = null
+    this.opponent_id    = 0
     this.opponent_nick  = null
     this.color          = null
     this.opponent_color = null
@@ -19,24 +21,12 @@ class User {
     this.wait_agree     = false
     this.wait_opponent  = true
     this.wait_playing   = true
+    this.game_id        = 0
   }
 }
 
 let user = new User()
-export { user }
-
-function col_over(element) {
-  var col_index = parseInt(element.id.substr(4))
-  document.getElementById('arrow').style.opacity = 1
-  var arrow_x = 112 + 104 * (col_index - 2)
-  if (col_index == 1)
-    arrow_x = 0
-  document.getElementById('arrow').style.transform = "translate(" + arrow_x + "px, 0)"
-}
-
-function col_out() {
-  document.getElementById('arrow').style.opacity = 0
-}
+export { user, grid }
 
 function play(color, col_index) {
   var col      = grid[col_index - 1].slice(0)
@@ -62,20 +52,4 @@ function play(color, col_index) {
   )
   parent.appendChild(disc)
   return new_y
-}
-
-function col_clic(element) {
-  if (user.wait_playing)
-    return
-  var col_index = parseInt(element.id.substr(4))
-  var new_y = play(user.color, col_index)
-  user.wait_playing = true;
-  websocket.send(JSON.stringify({
-    'path': 'play',
-    'content': {
-      'id': 0,
-      'disc_x': col_index,
-      'disc_y': new_y 
-    }
-  }))
 }

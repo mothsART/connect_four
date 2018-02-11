@@ -18,10 +18,20 @@
                 </user-list>
             </template>
             <template v-if="agreeQuestion">
-                <div>Est-vous d'accord ?</div>
+                <div>
+                    <p><strong>{{ user.opponent_nick }}</strong> souhaites jouer avec vous ?</p>
+                    <div>
+                       <button @click="agree(user.ws_id, user.nick, false)">
+                        Refuser
+                      </button>
+                      <button @click="agree(user.opponent_id, user.opponent_nick, true)">
+                        Accepter
+                      </button>
+                    </div>
+                </div>
             </template>
             <template v-if="waitAgree">
-                <div>En attente d'accord</div>
+                <div>En attente d'accord de <strong>{{ user.opponent_nick }}</strong></div>
             </template>
         </div>
       </div>
@@ -29,11 +39,12 @@
 </template>
 
 <script>
-import { user } from '../js/user'
-import server from '../js/server'
+import { user }       from '../js/user'
+import server         from '../js/server'
+import { ws }         from '../js/ws'
 import ConnexionError from './ConnexionError.vue'
-import Entry from './Entry.vue'
-import UserList from './UserList.vue'
+import Entry          from './Entry.vue'
+import UserList       from './UserList.vue'
 
 export default {
   name: 'modal',
@@ -54,9 +65,11 @@ export default {
       return this.server.enabled && this.showEntry
     },
     agreeQuestion: function () {
-      return this.user.agree_uestion
+      this.showUserList = false
+      return this.user.agree_question
     },
     waitAgree: function () {
+      this.showUserList = false
       return this.user.wait_agree
     }
   },
@@ -67,6 +80,9 @@ export default {
     },
     getRandomOpponent: function() {
       this.showEntry = false
+    },
+    agree (id, opponent_nick, response) {
+      ws.agree(id, user.nick, opponent_nick, response)
     }
   }
 }
