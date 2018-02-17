@@ -12,7 +12,7 @@ yansi = "0.3.4"
 serde           = "1.0"
 serde_derive    = "1.0"
 env_logger      = "0.4"
-ws              = "0.7.3"
+#ws              = "0.7.6"
 log = "*"
 time = "*"
 serde_json = "*"
@@ -29,5 +29,6 @@ features = ["tera_templates", "msgpack"]
 version = "0.3.0"
 features = ["v3_10"]
 
-[replace]
-"ws:0.7.3" = { path = '../ws-rs' }
+[dependencies.ws]
+git = "https://github.com/housleyjk/ws-rs"
+rev = "2b705d6745e36747f250c8c93d161f30e4fab02c"

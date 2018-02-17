@@ -21,10 +21,10 @@
                 <div>
                     <p><strong>{{ user.opponent_nick }}</strong> souhaites jouer avec vous ?</p>
                     <div>
-                       <button @click="agree(user.ws_id, user.nick, false)">
+                       <button @click="refuse()">
                         Refuser
                       </button>
-                      <button @click="agree(user.opponent_id, user.opponent_nick, true)">
+                      <button @click="accept()">
                         Accepter
                       </button>
                     </div>
@@ -35,6 +35,28 @@
             </template>
             <template v-if="waitPlaying">
                 <div>En attente du jeu adverse ...</div>
+            </template>
+            <template v-if="hasWin">
+                <div>Vous avez gagné, bravo !</div>
+                <div>
+                   <button @click="findOpponent()">
+                    Rechercher un autre adversaire
+                  </button>
+                  <button @click="replaySameOpponent()">
+                    Rejouer contre le même adversaire
+                  </button>
+                </div>
+            </template>
+            <template v-if="user.hasLoose">
+                <div>Vous avez perdu.</div>
+                <div>
+                   <button @click="findOpponent()">
+                    Rechercher un autre adversaire
+                  </button>
+                  <button @click="replaySameOpponent()">
+                    Rejouer contre le même adversaire
+                  </button>
+                </div>
             </template>
         </div>
       </div>
@@ -77,7 +99,10 @@ export default {
     },
     waitPlaying: function () {
       return this.user.wait_playing
-    }
+    },
+    hasWin: function () {
+	  return this.user.hasWin
+	}  
   },
   methods: {
     getOpponent: function () {
@@ -87,8 +112,11 @@ export default {
     getRandomOpponent: function() {
       this.showEntry = false
     },
-    agree (id, opponent_nick, response) {
-      ws.agree(id, user.nick, opponent_nick, response)
+    refuse() {
+         ws.agree(false)
+    },
+    accept() {
+        ws.agree(true)
     }
   }
 }

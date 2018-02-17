@@ -99,14 +99,14 @@ class WS {
   static on_game_start(data) {
     let second_user = null
     if (user.id == data.user.id) {
-      user.color  = data.user.color
+      user.color          = data.user.color
       user.opponent_color = data.opponent.color
-      second_user = data.opponent
+      second_user         = data.opponent
     }
     if (user.id == data.opponent.id) {
-      user.color  = data.opponent.color
+      user.color          = data.opponent.color
       user.opponent_color = data.user.color
-      second_user = data.user
+      second_user         = data.user
     }
     if (!second_user) {
       return;
@@ -117,30 +117,27 @@ class WS {
     user.wait_opponent  = false
     user.wait_agree     = false
     user.wait_playing   = false
-    console.log(user)
   }
   
   static on_play(data) {
-    console.log("play!")
     play(user.opponent_color, data.x)
     user.wait_playing  = false
   }
 
   static on_has_played(data) {
-    console.log("wait !")
   }
   
   static on_game_over(data) {
-    console.log("game over!")
     play(user.opponent_color, data.x)
     user.wait_opponent = true
-    alert('game over !')
+    user.wait_playing  = false
+    user.hasLoose      = true
   }
 
   static on_win(data) {
-    console.log("you win!")
     user.wait_opponent = true
-    console.log('you win')
+    user.wait_playing  = false
+    user.hasWin        = true
   }
   
   get_id () {
@@ -164,11 +161,11 @@ class WS {
     this.websocket.send(wrapper) 
   }
   
-  agree (id, nick, opponent_nick, response) {
+  agree (response) {
     let new_user = {
-      'user_id': id,
-      'nick': nick,
-      'opponent_nick': opponent_nick,
+      'nick': user.nick,
+      'opponent_id': user.opponent_id,
+      'opponent_nick': user.opponent_nick,
       'response': response
     }
     let wrapper = JSON.stringify({'path': 'agree', 'content': new_user})

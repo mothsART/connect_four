@@ -5,24 +5,15 @@ extern crate env_logger;
 extern crate serde;
 #[macro_use] extern crate serde_json;
 #[macro_use] extern crate serde_derive;
-extern crate diesel;
 extern crate connect_four;
-extern crate uuid;
 
 use std::fs::OpenOptions;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::collections::HashMap;
 use serde_json::Value as Json;
-
-use diesel::*;
-use diesel::sqlite::SqliteConnection;
-use connect_four::{establish_connection, ADDR, PORT};
-use connect_four::grid::{win, Grid};
-use connect_four::models::{User, NewUser, GameInProgress, NewGameInProgress};
-use connect_four::schema::users::dsl::users;
-use connect_four::schema::game_in_progress::dsl::game_in_progress;
-use uuid::Uuid;
+use connect_four::{ADDR, PORT, ConnectFourDataBaseStruct, ConnectFourDataBase};
+use connect_four::grid::{Grid, win};
 
 const SAVE: ws::util::Token = ws::util::Token(1);
 const PING: ws::util::Token = ws::util::Token(2);
@@ -31,7 +22,7 @@ const SAVE_TIME: u64 = 500;
 const PING_TIME: u64 = 10_000;
 
 type MessageLog = Rc<RefCell<Vec<LogMessage>>>;
-type Users      = Rc<RefCell<HashMap<u32, WSUser>>>;
+type Users      = Rc<RefCell<HashMap<u32, ws::Sender>>>;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct Wrapper {
@@ -59,7 +50,7 @@ struct PlayWith {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct Agree {
-    user_id: i32,
+    opponent_id: i32,
     nick: String,
     opponent_nick: String,
     response: bool
@@ -113,203 +104,12 @@ impl Message {
     }
 }
 
-pub struct ConnectFourDataBaseStruct {
-    pub connection: SqliteConnection
-}
-
-pub trait ConnectFourDataBase {
-    fn new() -> ConnectFourDataBaseStruct;
-    fn count_users(&mut self) -> i64;
-    fn insert_user(&mut self, ws_id: u32, login: String) -> User;
-    fn user_exists(&mut self, ws_id_to_test: i32) -> bool;
-    fn get_user_ws_id(&mut self) -> Option<User>;
-    fn get_connected_users(&mut self, user_id: Option<u32>) -> Option<Vec<User>>;
-    fn get_user_alone(&mut self) -> Option<String>;
-    fn insert_game(&mut self, id_player1: u32, id_player2: u32, grid: Grid) -> bool;
-    fn play_with(&mut self, id_player1: u32) -> Option<GameInProgress>;
-    fn update_grid(&mut self, id_player1: u32, grid: &Grid) -> bool;
-}
-
-impl ConnectFourDataBase for ConnectFourDataBaseStruct {
-    fn new() -> ConnectFourDataBaseStruct {
-        ConnectFourDataBaseStruct {
-            connection:  establish_connection()
-        }
-    }
-
-    fn count_users(&mut self) -> i64 {
-        use diesel::dsl::*;
-        use connect_four::schema::users::*;
-        match connect_four::schema::users::dsl::users
-            .select(count(uuid))
-            .filter(connected.eq(true))
-            .first(&self.connection) {
-             Ok(v) => v,
-             Err(_) => 0
-        }
-    }
-    
-    fn insert_user(&mut self, ws_id: u32, login: String) -> User {
-        let uuid = Uuid::new_v4().to_string();
-        let user = User {
-            id:        0,
-            ws_id:     ws_id as i32,
-            uuid:      uuid.clone(),
-            admin:     false,
-            points:    0,
-            login:     login.clone(),
-            passw:     None,
-            connected: true,
-            playing:   false
-        };
-        match self.user_exists(ws_id as i32) {
-            true => {
-                user
-            },
-            false => {
-                let new_user = NewUser {
-                    ws_id:     ws_id as i32,
-                    uuid:      &uuid.to_string(),
-                    admin:     false,
-                    points:    0,
-                    login:     &login,
-                    connected: true,
-                    playing:   false
-                };
-                diesel::insert_into(users)
-                .values(&new_user)
-                .execute(&self.connection);
-                user
-            }
-        }
-    }
-
-    fn user_exists(&mut self, ws_id_to_test: i32) -> bool {
-        use connect_four::schema::users::*;
-        let query_fragment = connect_four::schema::users::dsl::users.filter(
-            ws_id.eq(ws_id_to_test)).limit(1);
-        let u = query_fragment.load::<User>(&self.connection)
-        .expect("Error loading posts");
-        !u.is_empty()
-    }
-
-    fn get_user_ws_id(&mut self) -> Option<User> {
-        use connect_four::schema::users::*;
-        let result = connect_four::schema::users::dsl::users
-        .filter(connected.eq(true)
-        .and(playing.eq(false)))
-        .limit(1)
-        .load::<User>(&self.connection);
-        match result {
-            Ok(mut r) => {
-                if r.is_empty() {
-                    None
-                }
-                else {
-                    r.pop()
-                }
-            },
-            Err(_) => None
-        }
-    }
-
-    fn get_connected_users(&mut self, user_id: Option<u32>) -> Option<Vec<User>> {
-        use connect_four::schema::users::*;
-        let mut sql = connect_four::schema::users::dsl::users
-        .filter(connected.eq(true).and(playing.eq(false)))
-        .into_boxed();
-        match user_id {
-            Some(v) => {
-                sql = connect_four::schema::users::dsl::users
-                .filter(
-                    connected.eq(true)
-                    .and(playing.eq(false))
-                    .and(ws_id.ne(v as i32))
-                ).into_boxed();
-            },
-            None => {}
-        }
-        let result = sql.load::<User>(&self.connection);
-        match result {
-            Ok(r) => {
-                if r.is_empty() {
-                    None
-                }
-                else {
-                    Some(r)
-                }
-            },
-            Err(_) => None
-        }
-    }
-    
-    fn get_user_alone(&mut self) -> Option<String> {
-        use connect_four::schema::users::*;
-        let result = connect_four::schema::users::dsl::users.
-        filter(playing.eq(false))
-        .limit(1)
-        .load::<User>(&self.connection);
-        match result {
-            Ok(mut r) => {
-                if r.is_empty() {
-                    None
-                }
-                else {
-                    match r.pop() {
-                        Some(u) => Some(u.uuid),
-                        None => None
-                    }
-                }
-            },
-            Err(_) => None
-        }
-    }
-
-    fn insert_game(&mut self, id_player1: u32, id_player2: u32, grid: Grid) -> bool {
-        let new_game = NewGameInProgress {
-            id_player1:     id_player1 as i32,
-            id_player2:     id_player2 as i32,
-            serialize_grid: serde_json::to_string(&grid).unwrap()
-        };
-        diesel::insert_into(game_in_progress)
-        .values(&new_game)
-        .execute(&self.connection);
-        true
-    }
-    
-    fn play_with(&mut self, id_player1: u32) -> Option<GameInProgress> {
-        use connect_four::schema::game_in_progress::*;
-        let query_fragment = connect_four::schema::game_in_progress::dsl::game_in_progress.filter(
-            id_player1.eq(id_player1)
-            .or(id_player2.eq(id_player1))
-        ).limit(1);
-        let mut g = query_fragment.load::<GameInProgress>(&self.connection).unwrap();
-        if g.is_empty() {
-            None
-        }
-        else {
-            g.pop()
-        }
-    }
-
-    fn update_grid(&mut self, id_player2: u32, grid: &Grid) -> bool {
-        use connect_four::schema::game_in_progress::*;
-        diesel::update(connect_four::schema::game_in_progress::dsl::game_in_progress.filter(
-            id_player2.eq(id_player2)
-         ))
-        .set(serialize_grid.eq(serde_json::to_string(&grid).unwrap()))
-        .execute(&self.connection);
-        true
-    }
-}
-
 struct ChatHandler {
     out: ws::Sender,
     db: ConnectFourDataBaseStruct,
     nick: Option<String>,
     message_log: MessageLog,
-    users: Users,
-    not_playing_uuid:  Option<RefCell<String>>
+    users: Users
 }
 
 use ws::{Request, Result, Response};
@@ -321,11 +121,10 @@ impl ws::Handler for ChatHandler {
         try!(self.out.timeout(PING_TIME, PING));
         let backlog = self.message_log.borrow();
         // We take two chunks because one chunk might not be a full 50
-        /*let mut it = backlog.chunks(50).rev().take(2);
+        let mut it = backlog.chunks(50).rev().take(2);
         let msgs1 = it.next();
         let msgs2 = it.next();
         // longwinded reverse
-        println!("cool!");
         if let Some(msgs) = msgs2 {
             for msg in msgs {
                 if let Some(sent) = msg.sent {
@@ -350,7 +149,7 @@ impl ws::Handler for ChatHandler {
                     }
                 }
             }
-        }*/
+        }
         Ok(())
     }
 
@@ -363,16 +162,10 @@ impl ws::Handler for ChatHandler {
     }
     fn on_message(&mut self, msg: ws::Message) -> ws::Result<()> {
         let id = self.out.connection_id();
+        println!("{}", id);
         if let Ok(text_msg) = msg.clone().as_text() {
             if let Ok(wrapper) = serde_json::from_str::<Wrapper>(text_msg) {
-                 if wrapper.path == "get_id" {
-                    return self.out.send(format!("{}",
-                        json!({
-                            "path": "get_id",
-                            "id": id
-                        })
-                    ))
-                }
+				self.users.borrow_mut().insert(self.out.connection_id(), self.out.clone());
                  if wrapper.path == "connected" {
                     return self.out.send(format!("{}",
                         json!({
@@ -403,7 +196,8 @@ impl ws::Handler for ChatHandler {
                 if wrapper.path == "play_with" {
                   let play_with = serde_json::from_value::<PlayWith>(wrapper.content.clone()).unwrap();
                   println!("{:?} {}", play_with, id);
-                  self.out.send_to(play_with.user_id as u32, format!("{}",
+                  println!("{:?}",  self.users.borrow_mut().keys());
+                  self.users.borrow_mut().get(&(play_with.user_id as u32)).unwrap().send(format!("{}",
                     json!({
                         "path": "game_request",
                         "opponent_nick": play_with.nick.clone(),
@@ -420,24 +214,39 @@ impl ws::Handler for ChatHandler {
                 if wrapper.path == "agree" {
                     let agree = serde_json::from_value::<Agree>(wrapper.content.clone()).unwrap();
                     println!("agree {:?}", agree);
-                    /* Create a game and start it ! */
-                    let grid = Grid::new();
-                    self.db.insert_game(id, agree.user_id as u32, grid);
-                    return self.out.broadcast(format!("{}",
-                        json!({
-                            "path": "game_start",
-                            "user": {
-                                "id": agree.user_id,
-                                "nick": agree.nick.clone(),
-                                "color": DiscColor::Red
-                            },
-                            "opponent": {
-                                "id": id,
-                                "nick": agree.opponent_nick,
-                                "color": DiscColor::Yellow
-                            }
-                        })
-                    ))
+                    match agree.response {
+                        true => {
+                            /* Create a game and start it ! */
+                            let grid = Grid::new();
+                            self.db.insert_game(id, agree.opponent_id as u32, grid);
+                            return self.out.broadcast(format!("{}",
+                                json!({
+                                    "path": "game_start",
+                                    "user": {
+                                        "id": agree.opponent_id,
+                                        "nick": agree.nick.clone(),
+                                        "color": DiscColor::Red
+                                    },
+                                    "opponent": {
+                                        "id": id,
+                                        "nick": agree.opponent_nick,
+                                        "color": DiscColor::Yellow
+                                    }
+                                })
+                            ))
+                        },
+                        false => {
+                          self.users.borrow_mut().get(&(agree.opponent_id as u32)).unwrap().send(
+                              format!("{}",
+                                  json!({
+                                      "path": "game_refuse",
+                                      "opponent_id": id,
+                                      "opponent_nick": agree.nick.clone()
+                                  })
+                              )
+                          ).unwrap()
+                        }
+                    }
                 }
                 if let Ok(play) = serde_json::from_value::<Play>(wrapper.content.clone()) {
                     println!("{:?}", play);
@@ -456,13 +265,16 @@ impl ws::Handler for ChatHandler {
                         play.color.clone() as i8
                     ) {
                         true => {
-                            self.out.send_to(second_player_id as u32, format!("{}",
-                                json!({
-                                    "path": "game_over",
-                                    "x": play.disc_x
-                                    
-                                })
-                            )).unwrap();
+							println!("fin du jeu!");
+                            self.users.borrow_mut().get(&(second_player_id as u32)).unwrap().send(
+                                format!("{}",
+                                    json!({
+                                        "path": "game_over",
+                                        "x": play.disc_x
+                                        
+                                    })
+                                )
+                            ).unwrap();
                             return self.out.send(format!("{}",
                                 json!({
                                     "path": "win"
@@ -470,12 +282,14 @@ impl ws::Handler for ChatHandler {
                             ))
                         },
                         false => {
-                            self.out.send_to(second_player_id as u32, format!("{}",
-                                json!({
-                                    "path": "play",
-                                    "x": play.disc_x
-                                })
-                            )).unwrap();
+                            self.users.borrow_mut().get(&(second_player_id as u32)).unwrap().send(
+                                format!("{}",
+                                    json!({
+                                        "path": "play",
+                                        "x": play.disc_x
+                                    })
+                                )
+                            ).unwrap();
                             return self.out.send(format!("{}",
                                 json!({
                                     "path": "has_played"
@@ -534,7 +348,6 @@ impl ws::Handler for ChatHandler {
 fn main () {
     // Setup logging
     env_logger::init().unwrap();
-
     let mut file = OpenOptions::new()
         .read(true)
         .write(true)
@@ -547,17 +360,23 @@ fn main () {
             serde_json::from_reader(
                 &mut file,
             ).unwrap_or(
-                Vec::with_capacity(10_000))));
-
+                Vec::with_capacity(10_000)
+            )
+        )
+    );
     let _users = Users::new(RefCell::new(HashMap::with_capacity(10_000)));
+    if cfg!(debug_assertions) {
+        let mut db = ConnectFourDataBaseStruct::new();
+        println!("refresh database");
+        db.refresh();
+    }
     if let Err(error) = ws::listen(format!("{}:{}", ADDR, PORT), |out| {
         ChatHandler {
             out: out,
             db: ConnectFourDataBaseStruct::new(),
             nick: None,
             message_log: message_log.clone(),
-            users: _users.clone(),
-            not_playing_uuid: None
+            users: _users.clone()
         }
     }) {
         error!("Failed to create WebSocket due to {:?}", error);

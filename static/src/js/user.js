@@ -22,6 +22,8 @@ class User {
     this.wait_opponent  = true
     this.wait_playing   = false
     this.game_id        = 1
+    this.hasWin         = false
+    this.hasLoose       = false
   }
 }
 

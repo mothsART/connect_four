@@ -18,7 +18,6 @@
         </tr>
       </tbody>
     </table>
-    <button @click="get_id()">Donne Id</button>
   </div>
 </template>
 
@@ -38,10 +37,7 @@ export default {
   methods: {
     play_with (id, opponent_nick) {
       ws.play_with(id, user.nick, opponent_nick)
-    },
-    get_id () {
-	  ws.get_id()
-	}
+    }
   }
 }
 </script>
