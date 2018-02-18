@@ -24,6 +24,8 @@ class User {
     this.game_id        = 1
     this.hasWin         = false
     this.hasLoose       = false
+    this.grid           = grid
+    this.game_id        = 0
   }
 }
 
@@ -31,9 +33,10 @@ let play = function (color, col_index) {
   if (!color) {
     throw "color is not defined !"
   }
-  var col      = grid[col_index - 1].slice(0)
+  var col      = user.grid[col_index - 1].slice(0)
   var parent   = document.getElementById('discs')
   var disc     = document.getElementById('disc-template').cloneNode(true)
+  disc.classList.add('playingDisc')
   disc.getElementsByClassName('disc')[0].classList.add(color.toLowerCase())
   var deplac_x = 103.833333333
   var deplac_y = 104.4
@@ -44,7 +47,7 @@ let play = function (color, col_index) {
       return true
     new_y = nb_col - index - 1
   })
-  grid[col_index - 1][new_y] = color
+  user.grid[col_index - 1][new_y] = color
   disc.setAttribute(
     'style',
     'opacity: 1;'
@@ -56,5 +59,14 @@ let play = function (color, col_index) {
   return new_y
 }
 
+let refreshGrid = function () {
+  var elements = document.getElementsByClassName('playingDisc')
+  while(elements.length > 0) {
+    elements[0].parentNode.removeChild(elements[0])
+  }
+  // initialize grid on cloning
+  user.grid = JSON.parse(JSON.stringify(grid))
+}
+
 let user = new User()
-export { user, grid, play }
+export { user, play, refreshGrid }

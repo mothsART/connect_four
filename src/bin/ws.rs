@@ -12,7 +12,10 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::collections::HashMap;
 use serde_json::Value as Json;
-use connect_four::{ADDR, PORT, ConnectFourDataBaseStruct, ConnectFourDataBase};
+use connect_four::{
+    ADDR, PORT,
+    ConnectFourDataBaseStruct, ConnectFourDataBase
+};
 use connect_four::grid::{Grid, win};
 
 const SAVE: ws::util::Token = ws::util::Token(1);
@@ -26,13 +29,13 @@ type Users      = Rc<RefCell<HashMap<u32, ws::Sender>>>;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct Wrapper {
-    path: String,
+    path:    String,
     content: Json,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct Message {
-    nick: String,
+    nick:    String,
     message: String,
 }
 
@@ -43,17 +46,17 @@ struct Join {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct PlayWith {
-    user_id: i32,
-    nick: String,
+    user_id:       i32,
+    nick:          String,
     opponent_nick: String
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct Agree {
-    opponent_id: i32,
-    nick: String,
+    opponent_id:   i32,
+    nick:          String,
     opponent_nick: String,
-    response: bool
+    response:      bool
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Hash, Eq, PartialEq)]
@@ -65,10 +68,11 @@ struct WSUser {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct Play {
-    id: i32,
-    disc_x: i32,
-    disc_y: i32,
-    color: DiscColor
+    game_id: u32,
+    user_id: i32,
+    disc_x:  i32,
+    disc_y:  i32,
+    color:   DiscColor
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Hash, Eq, PartialEq)]
@@ -80,8 +84,8 @@ enum DiscColor {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct LogMessage {
-    nick: String,
-    sent: Option<i64>,
+    nick:    String,
+    sent:    Option<i64>,
     message: String,
 }
 
@@ -130,8 +134,8 @@ impl ws::Handler for ChatHandler {
                 if let Some(sent) = msg.sent {
                     if time::get_time() - time::Timespec::new(sent, 0) < time::Duration::minutes(10) {
                         try!(self.out.send(format!("{:?}", json!({
-                            "path": "/message",
-                            "content": msg.to_message(),
+                            "path":     "/message",
+                            "content":  msg.to_message(),
                             "users_nb": self.db.count_users()
                         }))))
                     }
@@ -143,7 +147,7 @@ impl ws::Handler for ChatHandler {
                 if let Some(sent) = msg.sent {
                     if  time::get_time() - time::Timespec::new(sent, 0) < time::Duration::minutes(10) {
                         try!(self.out.send(format!("{:?}", json!({
-                            "path": "/message",
+                            "path":    "/message",
                             "content": msg.to_message(),
                         }))))
                     }
@@ -162,15 +166,14 @@ impl ws::Handler for ChatHandler {
     }
     fn on_message(&mut self, msg: ws::Message) -> ws::Result<()> {
         let id = self.out.connection_id();
-        println!("{}", id);
         if let Ok(text_msg) = msg.clone().as_text() {
             if let Ok(wrapper) = serde_json::from_str::<Wrapper>(text_msg) {
-				self.users.borrow_mut().insert(self.out.connection_id(), self.out.clone());
+                self.users.borrow_mut().insert(self.out.connection_id(), self.out.clone());
                  if wrapper.path == "connected" {
                     return self.out.send(format!("{}",
                         json!({
-                            "path": "connected",
-                            "user_id": id,
+                            "path":     "connected",
+                            "user_id":  id,
                             "users_nb": self.db.count_users()
                         })
                     ))
@@ -178,7 +181,7 @@ impl ws::Handler for ChatHandler {
                 if wrapper.path == "user_list" {
                     return self.out.send(format!("{}",
                         json!({
-                            "path": "user_list",
+                            "path":  "user_list",
                             "users": serde_json::to_value(self.db.get_connected_users(Some(id))).unwrap()
                         })
                     ))
@@ -195,18 +198,16 @@ impl ws::Handler for ChatHandler {
                 }
                 if wrapper.path == "play_with" {
                   let play_with = serde_json::from_value::<PlayWith>(wrapper.content.clone()).unwrap();
-                  println!("{:?} {}", play_with, id);
-                  println!("{:?}",  self.users.borrow_mut().keys());
                   self.users.borrow_mut().get(&(play_with.user_id as u32)).unwrap().send(format!("{}",
                     json!({
                         "path": "game_request",
                         "opponent_nick": play_with.nick.clone(),
-                        "opponent_id": id
+                        "opponent_id":   id
                     })
                   )).unwrap();
                   return self.out.send(format!("{}",
                     json!({
-                        "path": "wait_agreement",
+                        "path":          "wait_agreement",
                         "opponent_nick": play_with.opponent_nick
                     })
                   ))
@@ -221,16 +222,17 @@ impl ws::Handler for ChatHandler {
                             self.db.insert_game(id, agree.opponent_id as u32, grid);
                             return self.out.broadcast(format!("{}",
                                 json!({
-                                    "path": "game_start",
+                                    "path":    "game_start",
+                                    "game_id": self.db.game_id,
                                     "user": {
-                                        "id": agree.opponent_id,
-                                        "nick": agree.nick.clone(),
-                                        "color": DiscColor::Red
+                                        "id":      agree.opponent_id,
+                                        "nick":    agree.nick.clone(),
+                                        "color":   DiscColor::Red
                                     },
                                     "opponent": {
-                                        "id": id,
-                                        "nick": agree.opponent_nick,
-                                        "color": DiscColor::Yellow
+                                        "id":      id,
+                                        "nick":    agree.opponent_nick,
+                                        "color":   DiscColor::Yellow
                                     }
                                 })
                             ))
@@ -239,8 +241,8 @@ impl ws::Handler for ChatHandler {
                           self.users.borrow_mut().get(&(agree.opponent_id as u32)).unwrap().send(
                               format!("{}",
                                   json!({
-                                      "path": "game_refuse",
-                                      "opponent_id": id,
+                                      "path":          "game_refuse",
+                                      "opponent_id":   id,
                                       "opponent_nick": agree.nick.clone()
                                   })
                               )
@@ -257,7 +259,6 @@ impl ws::Handler for ChatHandler {
                     if id == game.id_player1 as u32 {
                         second_player_id = game.id_player2;
                     }
-                    self.db.update_grid(second_player_id as u32, &grid);
                     match win(
                         &grid.grid,
                         play.disc_x as usize,
@@ -265,12 +266,13 @@ impl ws::Handler for ChatHandler {
                         play.color.clone() as i8
                     ) {
                         true => {
-							println!("fin du jeu!");
+                            println!("fin du jeu!");
+                            self.db.delete_game_in_progress(play.game_id);
                             self.users.borrow_mut().get(&(second_player_id as u32)).unwrap().send(
                                 format!("{}",
                                     json!({
                                         "path": "game_over",
-                                        "x": play.disc_x
+                                        "x":    play.disc_x
                                         
                                     })
                                 )
@@ -282,6 +284,7 @@ impl ws::Handler for ChatHandler {
                             ))
                         },
                         false => {
+                            self.db.update_grid(second_player_id as u32, &grid);
                             self.users.borrow_mut().get(&(second_player_id as u32)).unwrap().send(
                                 format!("{}",
                                     json!({
@@ -367,7 +370,7 @@ fn main () {
     let _users = Users::new(RefCell::new(HashMap::with_capacity(10_000)));
     if cfg!(debug_assertions) {
         let mut db = ConnectFourDataBaseStruct::new();
-        println!("refresh database");
+        println!("DEV MODE : refresh database");
         db.refresh();
     }
     if let Err(error) = ws::listen(format!("{}:{}", ADDR, PORT), |out| {

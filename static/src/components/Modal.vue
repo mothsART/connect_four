@@ -8,7 +8,9 @@
                 </connexion-error>
             </template>
             <template v-if="entryIsShow">
-                <entry v-on:selectOpponent="getOpponent" v-on:selectRandomOpponent="getRandomOpponent" :users_nb="server.users_nb">
+                <entry v-on:selectOpponent="getOpponent"
+                       v-on:selectRandomOpponent="getRandomOpponent"
+                       :users_nb="server.users_nb">
                   <slot></slot>
                 </entry>
             </template>
@@ -101,8 +103,8 @@ export default {
       return this.user.wait_playing
     },
     hasWin: function () {
-	  return this.user.hasWin
-	}  
+      return this.user.hasWin
+    }  
   },
   methods: {
     getOpponent: function () {
@@ -113,10 +115,17 @@ export default {
       this.showEntry = false
     },
     refuse() {
-         ws.agree(false)
+      ws.agree(false)
     },
     accept() {
-        ws.agree(true)
+      ws.agree(true)
+    },
+    replaySameOpponent() {
+      ws.play_with(
+        user.opponent_id,
+        user.nick,
+        user.opponent_nick
+      )
     }
   }
 }

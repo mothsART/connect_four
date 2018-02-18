@@ -50,7 +50,8 @@ pub fn establish_connection() -> PgConnection {
 */
 
 pub struct ConnectFourDataBaseStruct {
-    pub connection: SqliteConnection
+    pub connection: SqliteConnection,
+    pub game_id : u32
 }
 
 pub trait ConnectFourDataBase {
@@ -65,14 +66,16 @@ pub trait ConnectFourDataBase {
     fn play_with(&mut self, self_id_player1: u32) -> Option<GameInProgress>;
     fn update_grid(&mut self, self_id_player1: u32, grid: &Grid) -> bool;
     fn delete_users(&mut self);
-    fn delete_game_in_progress(&mut self);
+    fn delete_game_in_progress(&mut self, game_id: u32);
+    fn delete_all_game_in_progress(&mut self);
     fn refresh(&mut self);
 }
 
 impl ConnectFourDataBase for ConnectFourDataBaseStruct {
     fn new() -> ConnectFourDataBaseStruct {
         ConnectFourDataBaseStruct {
-            connection:  establish_connection()
+            connection: establish_connection(),
+            game_id:    0
         }
     }
     
@@ -202,9 +205,10 @@ impl ConnectFourDataBase for ConnectFourDataBaseStruct {
             id_player2:     self_id_player2 as i32,
             serialize_grid: serde_json::to_string(&grid).unwrap()
         };
-        insert_into(game_in_progress)
+        let game = insert_into(game_in_progress)
         .values(&new_game)
         .execute(&self.connection);
+        self.game_id += 1;
         true
     }
 
@@ -240,13 +244,19 @@ impl ConnectFourDataBase for ConnectFourDataBaseStruct {
         delete(sql).execute(&self.connection);
     }
     
-    fn delete_game_in_progress(&mut self) {
+    fn delete_game_in_progress(&mut self, game_id: u32) {
+        delete(game_in_progress.filter(
+            schema::game_in_progress::id.eq(game_id as i32)
+        )).execute(&self.connection);
+    }
+    
+    fn delete_all_game_in_progress(&mut self) {
         delete(game_in_progress).execute(&self.connection);
     }
     
     fn refresh(&mut self) {
         self.delete_users();
-        self.delete_game_in_progress();
+        self.delete_all_game_in_progress();
     }
 }
 
