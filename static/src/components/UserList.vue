@@ -47,7 +47,7 @@ export default {
     border-collapse: collapse;
     border: solid 1px grey;
     td {
-    border: solid 1px grey;
+      border: solid 1px grey;
     }
   }
 </style>

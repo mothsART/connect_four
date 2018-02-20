@@ -1,9 +1,9 @@
-import Vue from 'vue'
+import Vue    from 'vue'
 import server from '../js/server'
-import scss from '../scss/app.scss'
-import App from '../components/App.vue'
-import Grid from '../components/Grid.vue'
-
+import scss   from '../scss/app.scss'
+import App    from '../components/App.vue'
+import Grid   from '../components/Grid.vue'
+import Header from '../components/Header.vue'
 
 new Vue({
   el: '#app',
@@ -13,4 +13,9 @@ new Vue({
 new Vue({
   el: '#grid',
   render: h => h(Grid)
+})
+
+new Vue({
+  el: '#appheader',
+  render: h => h(Header)
 })

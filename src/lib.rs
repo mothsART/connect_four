@@ -118,7 +118,7 @@ impl ConnectFourDataBase for ConnectFourDataBaseStruct {
                 };
                 insert_into(users)
                 .values(&new_user)
-                .execute(&self.connection);
+                .execute(&self.connection).unwrap();
                 user
             }
         }
@@ -205,9 +205,9 @@ impl ConnectFourDataBase for ConnectFourDataBaseStruct {
             id_player2:     self_id_player2 as i32,
             serialize_grid: serde_json::to_string(&grid).unwrap()
         };
-        let game = insert_into(game_in_progress)
+        insert_into(game_in_progress)
         .values(&new_game)
-        .execute(&self.connection);
+        .execute(&self.connection).unwrap();
         self.game_id += 1;
         true
     }
@@ -231,7 +231,7 @@ impl ConnectFourDataBase for ConnectFourDataBaseStruct {
             id_player2.eq(self_id_player2 as i32)
          ))
         .set(serialize_grid.eq(serde_json::to_string(&grid).unwrap()))
-        .execute(&self.connection);
+        .execute(&self.connection).unwrap();
         true
     }
     
@@ -241,17 +241,17 @@ impl ConnectFourDataBase for ConnectFourDataBaseStruct {
             connected.eq(true)
             //.and(playing.eq(true))
         );
-        delete(sql).execute(&self.connection);
+        delete(sql).execute(&self.connection).unwrap();
     }
     
     fn delete_game_in_progress(&mut self, game_id: u32) {
         delete(game_in_progress.filter(
             schema::game_in_progress::id.eq(game_id as i32)
-        )).execute(&self.connection);
+        )).execute(&self.connection).unwrap();
     }
     
     fn delete_all_game_in_progress(&mut self) {
-        delete(game_in_progress).execute(&self.connection);
+        delete(game_in_progress).execute(&self.connection).unwrap();
     }
     
     fn refresh(&mut self) {

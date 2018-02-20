@@ -1,5 +1,7 @@
 <template>
-    <div class="modal-mask" v-if="modalIsShow">
+    <div v-bind:class="{ active: isActive }"
+         class="modal-mask"
+         v-if="modalIsShow">
       <div class="modal-wrapper">
         <div class="modal-container">
             <template v-if="!server.enabled">
@@ -14,7 +16,7 @@
                   <slot></slot>
                 </entry>
             </template>
-            <template v-if="showUserList">
+            <template v-if="user.showUserList">
                 <user-list :users="server.users">
                     <slot name="user-list"></slot>
                 </user-list>
@@ -45,7 +47,7 @@
                     Rechercher un autre adversaire
                   </button>
                   <button @click="replaySameOpponent()">
-                    Rejouer contre le même adversaire
+                    Rejouer contre {{ user.opponent_nick }}
                   </button>
                 </div>
             </template>
@@ -56,7 +58,7 @@
                     Rechercher un autre adversaire
                   </button>
                   <button @click="replaySameOpponent()">
-                    Rejouer contre le même adversaire
+                    Rejouer contre {{ user.opponent_nick }}
                   </button>
                 </div>
             </template>
@@ -79,9 +81,7 @@ export default {
   data: function () {
     return {
       user: user,
-      server: server,
-      showEntry: true,
-      showUserList: false
+      server: server
     }
   },
   computed: {
@@ -89,14 +89,14 @@ export default {
       return user.wait_opponent || user.wait_playing
     },
     entryIsShow: function () {
-      return this.server.enabled && this.showEntry
+      return this.server.enabled && user.showEntry
     },
     agreeQuestion: function () {
-      this.showUserList = false
+      user.showUserList = false
       return this.user.agree_question
     },
     waitAgree: function () {
-      this.showUserList = false
+      user.showUserList = false
       return this.user.wait_agree
     },
     waitPlaying: function () {
@@ -104,15 +104,18 @@ export default {
     },
     hasWin: function () {
       return this.user.hasWin
-    }  
+    },
+    isActive: function () {
+      return !user.showEntry
+    }
   },
   methods: {
     getOpponent: function () {
-      this.showEntry = false
-      this.showUserList = true
+      user.showEntry = false
+      user.showUserList = true
     },
     getRandomOpponent: function() {
-      this.showEntry = false
+      user.showEntry = false
     },
     refuse() {
       ws.agree(false)
@@ -139,12 +142,24 @@ export default {
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, .5);
     display: table;
     transition: opacity .3s ease;
+    &:before {
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      content: "";
+      position:fixed;
+      background-color: rgba(0, 0, 0, .5);
+    }
+    &.active:before {
+      top: 3rem;
+    } 
   }
   
   .modal-wrapper {
+    position: relative;
     display: table-cell;
     vertical-align: middle;
   }

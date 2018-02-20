@@ -113,28 +113,29 @@ class WS {
       user.color          = data.user.color
       user.opponent_color = data.opponent.color
       user.wait_playing   = false
-      second_user         = data.opponent
+      second_user         = data.user
     }
     if (user.id == data.opponent.id) {
       user.color          = data.opponent.color
       user.opponent_color = data.user.color
       user.wait_playing   = true
-      second_user         = data.user
+      second_user         = data.opponent
     }
     if (!second_user) {
       return
     }
-    user.game_id        = data.game_id
-    user.opponent_nick  = second_user.nick
-    user.opponent_id    = second_user.id
-    user.agree_question = false
-    user.wait_agree     = false
-    user.wait_opponent  = false
+    user.game_in_progress = true
+    user.game_id          = data.game_id
+    user.opponent_nick    = second_user.nick
+    user.opponent_id      = second_user.id
+    user.agree_question   = false
+    user.wait_agree       = false
+    user.wait_opponent    = false
   }
   
   static on_play(data) {
     play(user.opponent_color, data.x)
-    user.wait_playing  = false
+    user.wait_playing     = false
   }
 
   static on_has_played(data) {
@@ -142,15 +143,17 @@ class WS {
   
   static on_game_over(data) {
     play(user.opponent_color, data.x)
-    user.wait_opponent = true
-    user.wait_playing  = false
-    user.hasLoose      = true
+    user.game_in_progress = false
+    user.wait_opponent    = true
+    user.wait_playing     = false
+    user.hasLoose         = true
   }
 
   static on_win(data) {
-    user.wait_opponent = true
-    user.wait_playing  = false
-    user.hasWin        = true
+    user.game_in_progress = false
+    user.wait_opponent    = true
+    user.wait_playing     = false
+    user.hasWin           = true
   }
   
   get_id () {

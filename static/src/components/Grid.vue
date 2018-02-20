@@ -112,33 +112,33 @@ export default {
 
 <style lang="scss">
   #content {
-      display: flex;
-      flex-direction: column;
-      margin: 5px;
-      height: calc(100vh - 10px);
-  }
-  
-  svg {
-      height: calc(100vh - 20px);
+    display: flex;
+    flex-direction: column;
+    margin: 5px;
+    height: calc(100vh - 10px);
+    svg {
+      height: calc(100vh - 3rem - 20px);
+      width: 100%;
+    }
   }
   
   #arrow, #disc-template {
-      opacity: 0;
+    opacity: 0;
   }
   
   #arrow polygon {
-      fill: gold;
+    fill: gold;
   }
   
   #masks rect {
-      fill: transparent;
+    fill: transparent;
   }
   
   .disc.yellow {
-     fill: #ffae00;
+    fill: #ffae00;
   }
   
   .disc.red {
-     fill: red;
+    fill: red;
   }
 </style>

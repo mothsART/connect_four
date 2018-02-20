@@ -10,22 +10,25 @@ let grid = [
 
 class User {
   constructor () {
-    this.id             = 0
-    this.ws_id          = 0
-    this.nick           = null
-    this.opponent_id    = 0
-    this.opponent_nick  = null
-    this.color          = null
-    this.opponent_color = null
-    this.agree_question = false
-    this.wait_agree     = false
-    this.wait_opponent  = true
-    this.wait_playing   = false
-    this.game_id        = 1
-    this.hasWin         = false
-    this.hasLoose       = false
-    this.grid           = grid
-    this.game_id        = 0
+    this.id               = 0
+    this.ws_id            = 0
+    this.nick             = null
+    this.opponent_id      = 0
+    this.opponent_nick    = null
+    this.color            = null
+    this.opponent_color   = null
+    this.showEntry        = true
+    this.showUserList     = false
+    this.agree_question   = false
+    this.wait_agree       = false
+    this.wait_opponent    = true
+    this.game_in_progress = false
+    this.wait_playing     = false
+    this.game_id          = 1
+    this.hasWin           = false
+    this.hasLoose         = false
+    this.grid             = grid
+    this.game_id          = 0
   }
 }
 
