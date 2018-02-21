@@ -16,7 +16,6 @@ use diesel::{insert_into, update, delete};
 use diesel::dsl::*;
 use diesel::prelude::*;
 use diesel::sqlite::SqliteConnection;
-//use diesel::pg::PgConnection;
 use dotenv::dotenv;
 use std::env;
 use uuid::Uuid;
@@ -38,17 +37,6 @@ pub fn establish_connection() -> SqliteConnection {
         .expect(&format!("Error connecting to {}", database_url))
 }
 
-/*
-pub fn establish_connection() -> PgConnection {
-    dotenv().ok();
-
-    let database_url = env::var("DATABASE_URL")
-        .expect("DATABASE_URL must be set");
-    PgConnection::establish(&database_url)
-        .expect(&format!("Error connecting to {}", database_url))
-}
-*/
-
 pub struct ConnectFourDataBaseStruct {
     pub connection: SqliteConnection,
     pub game_id : u32
@@ -64,7 +52,7 @@ pub trait ConnectFourDataBase {
     fn get_user_alone(&mut self) -> Option<String>;
     fn insert_game(&mut self, id_player1: u32, id_player2: u32, grid: Grid) -> bool;
     fn play_with(&mut self, self_id_player1: u32) -> Option<GameInProgress>;
-    fn update_grid(&mut self, self_id_player1: u32, grid: &Grid) -> bool;
+    fn update_grid(&mut self, game_id: u32, grid: &Grid) -> bool;
     fn delete_users(&mut self);
     fn delete_game_in_progress(&mut self, game_id: u32);
     fn delete_all_game_in_progress(&mut self);
@@ -226,9 +214,9 @@ impl ConnectFourDataBase for ConnectFourDataBaseStruct {
         }
     }
 
-    fn update_grid(&mut self, self_id_player2: u32, grid: &Grid) -> bool {
+    fn update_grid(&mut self, game_id: u32, grid: &Grid) -> bool {
         update(game_in_progress.filter(
-            id_player2.eq(self_id_player2 as i32)
+            schema::game_in_progress::id.eq(game_id as i32)
          ))
         .set(serialize_grid.eq(serde_json::to_string(&grid).unwrap()))
         .execute(&self.connection).unwrap();
@@ -248,6 +236,7 @@ impl ConnectFourDataBase for ConnectFourDataBaseStruct {
         delete(game_in_progress.filter(
             schema::game_in_progress::id.eq(game_id as i32)
         )).execute(&self.connection).unwrap();
+        self.game_id -= 1;
     }
     
     fn delete_all_game_in_progress(&mut self) {

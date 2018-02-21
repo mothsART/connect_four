@@ -111,15 +111,13 @@ class WS {
     let second_user = null
     if (user.id == data.user.id) {
       user.color          = data.user.color
-      user.opponent_color = data.opponent.color
       user.wait_playing   = false
-      second_user         = data.user
+      second_user         = data.opponent
     }
     if (user.id == data.opponent.id) {
       user.color          = data.opponent.color
-      user.opponent_color = data.user.color
       user.wait_playing   = true
-      second_user         = data.opponent
+      second_user         = data.user
     }
     if (!second_user) {
       return
@@ -127,6 +125,7 @@ class WS {
     user.game_in_progress = true
     user.game_id          = data.game_id
     user.opponent_nick    = second_user.nick
+    user.opponent_color   = second_user.color
     user.opponent_id      = second_user.id
     user.agree_question   = false
     user.wait_agree       = false

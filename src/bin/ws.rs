@@ -197,61 +197,91 @@ impl ws::Handler for ChatHandler {
                     ))
                 }
                 if wrapper.path == "play_with" {
-                  let play_with = serde_json::from_value::<PlayWith>(wrapper.content.clone()).unwrap();
-                  self.users.borrow_mut().get(&(play_with.user_id as u32)).unwrap().send(format!("{}",
-                    json!({
-                        "path": "game_request",
-                        "opponent_nick": play_with.nick.clone(),
-                        "opponent_id":   id
-                    })
-                  )).unwrap();
-                  return self.out.send(format!("{}",
-                    json!({
-                        "path":          "wait_agreement",
-                        "opponent_nick": play_with.opponent_nick
-                    })
-                  ))
+                    if let Ok(play_with) = serde_json::from_value::<PlayWith>(wrapper.content.clone()) {
+                        println!("play _with ---> {:?}", play_with.user_id as u32);
+                        let mut users = self.users.borrow_mut();
+                        match users.contains_key(&(play_with.user_id as u32)) {
+                            true => {
+                                println!("dac");
+                                users.get(&(play_with.user_id as u32)).unwrap().send(format!("{}",
+                                    json!({
+                                        "path": "game_request",
+                                        "opponent_nick": play_with.nick.clone(),
+                                        "opponent_id":   id
+                                    })
+                                )).unwrap();
+                                return self.out.send(format!("{}",
+                                    json!({
+                                        "path":          "wait_agreement",
+                                        "opponent_nick": play_with.opponent_nick,
+                                        "opponent_id":   play_with.user_id
+                                    })
+                                ))
+                            },
+                            false => {
+                              return self.out.send(format!("{}",
+                                  json!({
+                                      "path":          "lost_user",
+                                      "opponent_nick": play_with.opponent_nick
+                                  })
+                              ))
+                            }
+                        }
+                    }
                 }
                 if wrapper.path == "agree" {
-                    let agree = serde_json::from_value::<Agree>(wrapper.content.clone()).unwrap();
-                    println!("agree {:?}", agree);
-                    match agree.response {
-                        true => {
-                            /* Create a game and start it ! */
-                            let grid = Grid::new();
-                            self.db.insert_game(id, agree.opponent_id as u32, grid);
-                            return self.out.broadcast(format!("{}",
-                                json!({
-                                    "path":    "game_start",
-                                    "game_id": self.db.game_id,
-                                    "user": {
-                                        "id":      agree.opponent_id,
-                                        "nick":    agree.nick.clone(),
-                                        "color":   DiscColor::Red
+                    if let Ok(agree) = serde_json::from_value::<Agree>(wrapper.content.clone()) {
+                        println!("agree {:?}", agree);
+                        match agree.response {
+                            true => {
+                                /* Create a game and start it ! */
+                                let grid = Grid::new();
+                                self.db.insert_game(id, agree.opponent_id as u32, grid);
+                                return self.out.broadcast(format!("{}",
+                                    json!({
+                                        "path":    "game_start",
+                                        "game_id": self.db.game_id,
+                                        "user": {
+                                            "id":      id,
+                                            "nick":    agree.nick.clone(),
+                                            "color":   DiscColor::Red
+                                        },
+                                        "opponent": {
+                                            "id":      agree.opponent_id,
+                                            "nick":    agree.opponent_nick,
+                                            "color":   DiscColor::Yellow
+                                        }
+                                    })
+                                ))
+                            },
+                            false => {
+                                let mut users = self.users.borrow_mut();
+                                match users.contains_key(&(agree.opponent_id as u32)) {
+                                    true => {
+                                        return users.get(&(agree.opponent_id as u32)).unwrap().send(
+                                            format!("{}",
+                                                json!({
+                                                    "path":          "game_refuse",
+                                                    "opponent_id":   id,
+                                                    "opponent_nick": agree.nick.clone()
+                                                })
+                                            )
+                                        )
                                     },
-                                    "opponent": {
-                                        "id":      id,
-                                        "nick":    agree.opponent_nick,
-                                        "color":   DiscColor::Yellow
+                                    false => {
+                                        return self.out.send(format!("{}",
+                                            json!({
+                                                "path":          "lost_user",
+                                                "opponent_nick": agree.nick.clone()
+                                            })
+                                        ))
                                     }
-                                })
-                            ))
-                        },
-                        false => {
-                          self.users.borrow_mut().get(&(agree.opponent_id as u32)).unwrap().send(
-                              format!("{}",
-                                  json!({
-                                      "path":          "game_refuse",
-                                      "opponent_id":   id,
-                                      "opponent_nick": agree.nick.clone()
-                                  })
-                              )
-                          ).unwrap()
+                                }
+                            }
                         }
                     }
                 }
                 if let Ok(play) = serde_json::from_value::<Play>(wrapper.content.clone()) {
-                    println!("{:?}", play);
                     let game = self.db.play_with(id).unwrap();
                     let mut grid: Grid = serde_json::from_str(&game.serialize_grid.unwrap()).unwrap();
                     grid.update(play.disc_x as usize, play.disc_y as usize, play.color.clone() as i8);
@@ -284,7 +314,7 @@ impl ws::Handler for ChatHandler {
                             ))
                         },
                         false => {
-                            self.db.update_grid(second_player_id as u32, &grid);
+                            self.db.update_grid(play.game_id, &grid);
                             self.users.borrow_mut().get(&(second_player_id as u32)).unwrap().send(
                                 format!("{}",
                                     json!({

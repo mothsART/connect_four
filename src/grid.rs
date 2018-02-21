@@ -1,4 +1,4 @@
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Grid {
     pub grid: Vec<Vec<i8>>
 }
@@ -24,7 +24,6 @@ impl Grid {
     }
     
     pub fn update(&mut self, pos_x: usize, pos_y: usize, value: i8) {
-        println!(">>>>>>> {} <=> {} => {}", pos_x, pos_y, value);
         match self.grid.get_mut(pos_x) {
             Some(x) => {
                 x[pos_y] = value;
@@ -41,7 +40,6 @@ fn exist(slice: &[Vec<i8>], pos_x: usize, pos_y: usize, value: i8) -> bool {
         Some(x) => {
             match x.get(pos_y) {
                 Some(y) => {
-                    println!("ok {}, {} <==> {}", pos_x, *y, value);
                     if *y == value {
                         return true;
                     }
@@ -79,7 +77,6 @@ pub fn win(slice: &[Vec<i8>], pos_x: usize, pos_y: usize, new_value: i8) -> bool
             break;
         }
     }
-    println!("#1 {} <=> {} => {}", x_max, x_min, x_max - x_min);
     if x_max - x_min >= 3 {
         return true;
     }
@@ -103,7 +100,6 @@ pub fn win(slice: &[Vec<i8>], pos_x: usize, pos_y: usize, new_value: i8) -> bool
             break;
         }
     }
-    println!("#2 {} <=> {} => {}", y_max, y_min, y_max - y_min);
     if y_max - y_min >= 3 {
         return true;
     }
@@ -133,7 +129,6 @@ pub fn win(slice: &[Vec<i8>], pos_x: usize, pos_y: usize, new_value: i8) -> bool
             break;
         }
     }
-    println!("#3 {} <=> {} , {} <=> {} => {} <=> {}", x_min, x_max, y_min, y_max, x_max - x_min, y_max - y_min);
     if x_max - x_min >= 3 && y_max - y_min >= 3 {
         return true;
     }
@@ -166,7 +161,6 @@ pub fn win(slice: &[Vec<i8>], pos_x: usize, pos_y: usize, new_value: i8) -> bool
             break;
         }
     }
-    println!("#4 {} <=> {} , {} <=> {} => {} <=> {}", x_min, x_max, y_min, y_max, x_max - x_min, y_max - y_min);
     if x_max - x_min >= 3 && y_max - y_min >= 3 {
         return true;
     }
