@@ -38,8 +38,7 @@ pub fn establish_connection() -> SqliteConnection {
 }
 
 pub struct ConnectFourDataBaseStruct {
-    pub connection: SqliteConnection,
-    pub game_id : u32
+    pub connection: SqliteConnection
 }
 
 pub trait ConnectFourDataBase {
@@ -62,8 +61,7 @@ pub trait ConnectFourDataBase {
 impl ConnectFourDataBase for ConnectFourDataBaseStruct {
     fn new() -> ConnectFourDataBaseStruct {
         ConnectFourDataBaseStruct {
-            connection: establish_connection(),
-            game_id:    0
+            connection: establish_connection()
         }
     }
     
@@ -196,7 +194,6 @@ impl ConnectFourDataBase for ConnectFourDataBaseStruct {
         insert_into(game_in_progress)
         .values(&new_game)
         .execute(&self.connection).unwrap();
-        self.game_id += 1;
         true
     }
 
@@ -236,7 +233,6 @@ impl ConnectFourDataBase for ConnectFourDataBaseStruct {
         delete(game_in_progress.filter(
             schema::game_in_progress::id.eq(game_id as i32)
         )).execute(&self.connection).unwrap();
-        self.game_id -= 1;
     }
     
     fn delete_all_game_in_progress(&mut self) {

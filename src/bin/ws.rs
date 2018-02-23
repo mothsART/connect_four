@@ -26,6 +26,19 @@ const PING_TIME: u64 = 10_000;
 
 type MessageLog = Rc<RefCell<Vec<LogMessage>>>;
 type Users      = Rc<RefCell<HashMap<u32, ws::Sender>>>;
+type GameIP = Rc<RefCell<GamesInProgres>>;
+
+struct GamesInProgres {
+	length: u32
+}
+
+impl GamesInProgres {
+    fn new() -> GamesInProgres {
+        GamesInProgres {
+            length: 0
+        }
+    }
+}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct Wrapper {
@@ -113,7 +126,8 @@ struct ChatHandler {
     db: ConnectFourDataBaseStruct,
     nick: Option<String>,
     message_log: MessageLog,
-    users: Users
+    users: Users,
+    games_in_p: GameIP
 }
 
 use ws::{Request, Result, Response};
@@ -237,10 +251,11 @@ impl ws::Handler for ChatHandler {
                                 /* Create a game and start it ! */
                                 let grid = Grid::new();
                                 self.db.insert_game(id, agree.opponent_id as u32, grid);
+                                self.games_in_p.borrow_mut().length += 1;
                                 return self.out.broadcast(format!("{}",
                                     json!({
                                         "path":    "game_start",
-                                        "game_id": self.db.game_id,
+                                        "game_id": self.games_in_p.borrow_mut().length,
                                         "user": {
                                             "id":      id,
                                             "nick":    agree.nick.clone(),
@@ -298,6 +313,7 @@ impl ws::Handler for ChatHandler {
                         true => {
                             println!("fin du jeu!");
                             self.db.delete_game_in_progress(play.game_id);
+                            self.games_in_p.borrow_mut().length -= 1;
                             self.users.borrow_mut().get(&(second_player_id as u32)).unwrap().send(
                                 format!("{}",
                                     json!({
@@ -403,13 +419,15 @@ fn main () {
         println!("DEV MODE : refresh database");
         db.refresh();
     }
+    let _games_in_p = GameIP::new(RefCell::new(GamesInProgres::new()));
     if let Err(error) = ws::listen(format!("{}:{}", ADDR, PORT), |out| {
         ChatHandler {
-            out: out,
-            db: ConnectFourDataBaseStruct::new(),
-            nick: None,
+            out:         out,
+            db:          ConnectFourDataBaseStruct::new(),
+            nick:        None,
             message_log: message_log.clone(),
-            users: _users.clone()
+            users:       _users.clone(),
+            games_in_p:  _games_in_p.clone()
         }
     }) {
         error!("Failed to create WebSocket due to {:?}", error);
