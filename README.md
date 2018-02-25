@@ -1,18 +1,41 @@
 # Connect Four
 
+[![LICENSE](https://img.shields.io/badge/license-BSD-blue.svg)](LICENSE)
+
 a websocket Game Prototype
 
 ## Installation
 
+```bash
+  git clone https://github.com/mothsART/connect_four.git
+```
+
 ## Launch
 
+### Web Server (HTTP)
 
+```bash
+  cargo run --bin web
+```
+
+### WebSocket Server
+
+```bash
+  cargo run --bin ws
+```
 
 ## Dev Mode
 
-npm run dev
+### VueJS : watch mode
 
-## Unit test
+```bash
+  cd static
+  npm run dev
+```
 
-cargo test
-cargo test grid
+### Unit test
+
+```bash
+  cargo test
+  cargo test grid
+```
