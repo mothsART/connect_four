@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="userListContainer">
     <table>
       <thead>
         <tr>
@@ -18,6 +18,9 @@
         </tr>
       </tbody>
     </table>
+    <button class="right" @click="selectRandomOpponent">
+        Choisir un adversaire au hasard
+    </button>
   </div>
 </template>
 
@@ -37,17 +40,29 @@ export default {
   methods: {
     play_with (id, opponent_nick) {
       ws.play_with(id, user.nick, opponent_nick)
+    },
+    selectRandomOpponent () {
+      this.$emit('selectRandomOpponent')
     }
   }
 }
 </script>
 
 <style lang="scss">
-  table {
-    border-collapse: collapse;
-    border: solid 1px grey;
-    td {
+  .userListContainer {
+    position: relative;
+    table {
+      border-collapse: collapse;
       border: solid 1px grey;
+      td {
+        border: solid 1px grey;
+      }
+    }
+    
+    button.right {
+      position: absolute;
+      top: 0;
+      right: 0;
     }
   }
 </style>

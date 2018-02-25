@@ -8,13 +8,8 @@
   <div class="modal-body">
       <label for="login">Identifiant : </label>
       <input id="login" type="text" @input="chooseLogin" />
-  </div>
-  <div class="modal-footer">
-      <button class="left" :disabled="isDisabled" v-on:click="selectOpponent">
-        Sélectionner un adversaire
-      </button>
-      <button class="right" :disabled="isDisabled" @click="selectRandomOpponent">
-        Choisir un adversaire au hasard
+      <button :disabled="isDisabled" v-on:click="connexion">
+        Connexion
       </button>
   </div>
 </div>
@@ -34,11 +29,8 @@ export default {
     }
   },
   methods: {
-    selectOpponent () {
-      this.$emit('selectOpponent')
-    },
-    selectRandomOpponent () {
-      this.$emit('selectRandomOpponent')
+    connexion () {
+      this.$emit('connexion')
     },
     chooseLogin: function (e) {
       user.nick = e.target.value

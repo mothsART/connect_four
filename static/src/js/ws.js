@@ -214,10 +214,12 @@ class WS {
     this.websocket.send(wrapper)
   }
 
-  play_random_user () {
+  random_opponent () {
     let wrapper = JSON.stringify({
-      'path': 'play_random_user',
-      'content': {}
+      'path': 'random_opponent',
+      'content': {
+        'nick': user.nick
+      }
     })
     this.websocket.send(wrapper) 
   }

@@ -1,8 +1,8 @@
 <template>
-  <div class="header">
+  <div v-bind:class="{ play: isPlaying }" class="header">
     <p v-if="playerIsSelected" v-bind:class="user.color" class="user">{{ user.nick }}</p>
-    <p v-if="isPlaying" class="middle">contre</p>
-    <p v-if="isPlaying" v-bind:class="user.opponent_color" class="opponent">{{ user.opponent_nick }}</p>
+    <p v-if="gameInProgress" class="middle">contre</p>
+    <p v-if="gameInProgress" v-bind:class="user.opponent_color" class="opponent">{{ user.opponent_nick }}</p>
   </div>
 </template>
 
@@ -23,6 +23,9 @@ export default {
        return !user.showEntry
     },
     isPlaying: function () {
+      return user.game_in_progress && !user.wait_playing
+    },
+    gameInProgress: function () {
       return user.game_in_progress
     }
   }
@@ -32,14 +35,18 @@ export default {
 <style lang="scss">
   $yellow: #ffb300;
   $red:    #dd2c00;
+  $lblue:  #d7e0e2;
   
   .header {
-    height: 2rem;
+    height: 2.5rem;
     display: flex;
     justify-content: space-between;
     box-sizing: border-box;
     position: relative;
     padding: 0 .5rem;
+    &.play {
+      border-bottom : solid 1px $lblue;
+    }
     p {
       margin-top: .5rem;
       &.user {

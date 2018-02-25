@@ -29,7 +29,7 @@ type Users      = Rc<RefCell<HashMap<u32, ws::Sender>>>;
 type GameIP = Rc<RefCell<GamesInProgres>>;
 
 struct GamesInProgres {
-	length: u32
+    length: u32
 }
 
 impl GamesInProgres {
@@ -55,6 +55,11 @@ struct Message {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct Join {
     join_nick: String
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+struct PlayWithRandomUser {
+    nick:          String
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -210,13 +215,43 @@ impl ws::Handler for ChatHandler {
                         })
                     ))
                 }
+                if wrapper.path == "random_opponent" {
+                    println!("{:?}", wrapper.content);
+                    if let Ok(play_with) = serde_json::from_value::<PlayWithRandomUser>(wrapper.content.clone()) {
+                        match self.db.get_random_user(id) {
+                            Some(u) => {
+                                let mut users = self.users.borrow_mut();
+                                users.get(&(u.ws_id as u32)).unwrap().send(format!("{}",
+                                    json!({
+                                        "path": "game_request",
+                                        "opponent_nick": play_with.nick,
+                                        "opponent_id":   id
+                                    })
+                                )).unwrap();
+                                return self.out.send(format!("{}",
+                                    json!({
+                                        "path":          "wait_agreement",
+                                        "opponent_nick": u.login,
+                                        "opponent_id":   u.id
+                                    })
+                                ))
+                            },
+                            None => {
+                                return self.out.send(format!("{}",
+                                    json!({
+                                        "path":          "No_users"
+                                    })
+                                ))
+                           }
+                        }
+                    }
+                }
                 if wrapper.path == "play_with" {
                     if let Ok(play_with) = serde_json::from_value::<PlayWith>(wrapper.content.clone()) {
                         println!("play _with ---> {:?}", play_with.user_id as u32);
                         let mut users = self.users.borrow_mut();
                         match users.contains_key(&(play_with.user_id as u32)) {
                             true => {
-                                println!("dac");
                                 users.get(&(play_with.user_id as u32)).unwrap().send(format!("{}",
                                     json!({
                                         "path": "game_request",

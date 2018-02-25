@@ -47,6 +47,7 @@ pub trait ConnectFourDataBase {
     fn insert_user(&mut self, self_ws_id: u32, login: String) -> User;
     fn user_exists(&mut self, self_ws_id: i32) -> bool;
     fn get_user_ws_id(&mut self) -> Option<User>;
+    fn get_random_user(&mut self, self_ws_id: u32) -> Option<User>;
     fn get_connected_users(&mut self, self_user_id: Option<u32>) -> Option<Vec<User>>;
     fn get_user_alone(&mut self) -> Option<String>;
     fn insert_game(&mut self, id_player1: u32, id_player2: u32, grid: Grid) -> bool;
@@ -112,7 +113,8 @@ impl ConnectFourDataBase for ConnectFourDataBaseStruct {
 
     fn user_exists(&mut self, self_ws_id: i32) -> bool {
         let query_fragment = users.filter(
-            ws_id.eq(self_ws_id)).limit(1);
+            ws_id.eq(self_ws_id)
+        ).limit(1);
         let u = query_fragment.load::<User>(&self.connection)
         .expect("Error loading posts");
         !u.is_empty()
@@ -125,6 +127,25 @@ impl ConnectFourDataBase for ConnectFourDataBaseStruct {
         .limit(1)
         .load::<User>(&self.connection);
         match result {
+            Ok(mut r) => {
+                if r.is_empty() {
+                    None
+                }
+                else {
+                    r.pop()
+                }
+            },
+            Err(_) => None
+        }
+    }
+
+    fn get_random_user(&mut self, self_ws_id: u32) -> Option<User> {
+        no_arg_sql_function!(RANDOM, (), "Represents the sql RANDOM() function");
+        match users
+        .filter(not(ws_id.eq(self_ws_id as i32)))
+        .limit(1)
+        .order(RANDOM)
+        .load::<User>(&self.connection) {
             Ok(mut r) => {
                 if r.is_empty() {
                     None

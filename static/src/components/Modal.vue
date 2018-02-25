@@ -10,14 +10,14 @@
                 </connexion-error>
             </template>
             <template v-if="entryIsShow">
-                <entry v-on:selectOpponent="getOpponent"
-                       v-on:selectRandomOpponent="getRandomOpponent"
+                <entry v-on:connexion="connexion"
                        :users_nb="server.users_nb">
                   <slot></slot>
                 </entry>
             </template>
             <template v-if="user.showUserList">
-                <user-list :users="server.users">
+                <user-list :users="server.users"
+                           v-on:selectRandomOpponent="selectRandomOpponent">
                     <slot name="user-list"></slot>
                 </user-list>
             </template>
@@ -110,11 +110,12 @@ export default {
     }
   },
   methods: {
-    getOpponent: function () {
+    connexion: function () {
       user.showEntry = false
       user.showUserList = true
     },
-    getRandomOpponent: function() {
+    selectRandomOpponent: function() {
+      ws.random_opponent()
       user.showEntry = false
     },
     refuse() {
@@ -122,6 +123,11 @@ export default {
     },
     accept() {
       ws.agree(true)
+    },
+    findOpponent() {
+      user.showUserList = true
+      user.hasWin       = false
+      user.hasLoose     = false
     },
     replaySameOpponent() {
       ws.play_with(
@@ -182,14 +188,6 @@ export default {
   
   .modal-footer {
     padding-bottom: 1rem;
-  }
-  
-  button.left {
-    float: left;
-  }
-  
-  button.right {
-    float: right;
   }
   
   .modal-enter {
