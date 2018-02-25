@@ -1,7 +1,7 @@
 <template>
   <g>
     <g id="arrow">
-      <polygon points="10,5 100,5 60,25" style="fill:gold;" />
+      <polygon points="10,5 100,5 60,25" v-bind:class="user.color" />
     </g>
     <g style="transform: translate(0, 30px);">
       <g id="discs">
@@ -17,7 +17,6 @@
           </g>
       <g id="masks" @mouseout="col_out();">
         <rect
-          id="col-1"
           @click="col_clic(1);"
           @mouseover="col_over(1);"
           y="30"
@@ -25,7 +24,6 @@
           height="644.2500295639038">
         </rect>
         <rect
-          id="col-2"
           @click="col_clic(2);"
           @mouseover="col_over(2);"
           y="30"
@@ -34,7 +32,6 @@
           x="112">
         </rect>
         <rect
-          id="col-3"
           @click="col_clic(3);"
           @mouseover="col_over(3);"
           y="30"
@@ -43,7 +40,6 @@
           x="216">
         </rect>
         <rect
-          id="col-4"
           @click="col_clic(4);"
           @mouseover="col_over(4);"
           y="30"
@@ -52,7 +48,6 @@
           x="320">
         </rect>
         <rect
-          id="col-5"
           @click="col_clic(5);"
           @mouseover="col_over(5);"
           y="30"
@@ -61,7 +56,6 @@
           x="424">
         </rect>
         <rect
-          id="col-6"
           @click="col_clic(6);"
           @mouseover="col_over(6);"
           y="30"
@@ -70,7 +64,6 @@
           x="528">
         </rect>
         <rect
-          id="col-7"
           @click="col_clic(7);"
           @mouseover="col_over(7);"
           y="30"
@@ -88,6 +81,11 @@ import { ws } from '../js/ws'
 
 export default {
   name: 'grid',
+  data: function () {
+    return {
+      user: user
+    }
+  },
   methods: {
     col_over (col_index) {
       document.getElementById('arrow').style.opacity = 1
@@ -105,12 +103,20 @@ export default {
       var new_y = play(user.color, col_index)
       user.wait_playing = true
       ws.play(col_index, new_y, user.color)
+    },
+    arrowColor () {
+      debugger
+      if (!user.color) {
+        return ""
+      }
+      return user.color
     }
   }
 }
 </script>
 
 <style lang="scss">
+  @import "../scss/app.scss";
   #content {
     display: flex;
     flex-direction: column;
@@ -126,19 +132,36 @@ export default {
     opacity: 0;
   }
   
-  #arrow polygon {
-    fill: gold;
+  #arrow polygon.Red {
+    fill: $red;
   }
-  
+
+  #arrow polygon.Yellow {
+    fill: $yellow;
+  }
+
   #masks rect {
     fill: transparent;
   }
-  
+
   .disc.yellow {
-    fill: #ffae00;
+    fill: $yellow;
   }
-  
+
   .disc.red {
-    fill: red;
+    fill: $red;
+  }
+ 
+  .disc.blink {
+    animation: allblink 1.5s infinite;
+  }
+
+  @keyframes allblink {
+    0% {
+      opacity: 0.3;
+    }
+    50% {
+      opacity: 1;
+    }
   }
 </style>

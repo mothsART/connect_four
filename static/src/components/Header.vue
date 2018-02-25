@@ -33,10 +33,7 @@ export default {
 </script>
 
 <style lang="scss">
-  $yellow: #ffb300;
-  $red:    #dd2c00;
-  $lblue:  #d7e0e2;
-  
+  @import "../scss/app.scss";
   .header {
     height: 2.5rem;
     display: flex;

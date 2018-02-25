@@ -41,6 +41,11 @@ let play = function (color, col_index) {
   var disc     = document.getElementById('disc-template').cloneNode(true)
   disc.classList.add('playingDisc')
   disc.getElementsByClassName('disc')[0].classList.add(color.toLowerCase())
+  var all_discs = document.getElementsByClassName("disc")
+  Array.from(all_discs).forEach(function(item) {
+      item.classList.remove('blink')
+  })
+  disc.getElementsByClassName('disc')[0].classList.add('blink')
   var deplac_x = 103.833333333
   var deplac_y = 104.4
   var new_y    = 0
