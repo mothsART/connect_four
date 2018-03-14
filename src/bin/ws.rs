@@ -24,10 +24,10 @@ const FILE: &'static str = "message_log";
 const SAVE_TIME: u64 = 500;
 const PING_TIME: u64 = 10_000;
 
-type MessageLog = Rc<RefCell<Vec<LogMessage>>>;
-type Users      = Rc<RefCell<HashMap<u32, ws::Sender>>>;
-type GameIP = Rc<RefCell<GamesInProgres>>;
-
+type MessageLog            = Rc<RefCell<Vec<LogMessage>>>;
+type Users                 = Rc<RefCell<HashMap<u32, ws::Sender>>>;
+type GameIP                = Rc<RefCell<GamesInProgres>>;
+type ConnectFourDataBaseRC = Rc<RefCell<ConnectFourDataBaseStruct>>;
 struct GamesInProgres {
     length: u32
 }
@@ -128,7 +128,7 @@ impl Message {
 
 struct ChatHandler {
     out: ws::Sender,
-    db: ConnectFourDataBaseStruct,
+    db: ConnectFourDataBaseRC,
     nick: Option<String>,
     message_log: MessageLog,
     users: Users,
@@ -155,7 +155,7 @@ impl ws::Handler for ChatHandler {
                         try!(self.out.send(format!("{:?}", json!({
                             "path":     "/message",
                             "content":  msg.to_message(),
-                            "users_nb": self.db.count_users()
+                            "users_nb": self.db.borrow_mut().count_users()
                         }))))
                     }
                 }
@@ -193,7 +193,7 @@ impl ws::Handler for ChatHandler {
                         json!({
                             "path":     "connected",
                             "user_id":  id,
-                            "users_nb": self.db.count_users()
+                            "users_nb": self.db.borrow_mut().count_users()
                         })
                     ))
                 }
@@ -201,13 +201,13 @@ impl ws::Handler for ChatHandler {
                     return self.out.send(format!("{}",
                         json!({
                             "path":  "user_list",
-                            "users": serde_json::to_value(self.db.get_connected_users(Some(id))).unwrap()
+                            "users": serde_json::to_value(self.db.borrow_mut().get_connected_users(Some(id))).unwrap()
                         })
                     ))
                 }
                 if let Ok(join) = serde_json::from_value::<Join>(wrapper.content.clone()) {
                     let join_nick = join.join_nick.clone();
-                    let user = self.db.insert_user(id, join_nick.clone());
+                    let user = self.db.borrow_mut().insert_user(id, join_nick.clone());
                     return self.out.broadcast(format!("{}",
                         json!({
                             "path": "has_joined",
@@ -218,7 +218,7 @@ impl ws::Handler for ChatHandler {
                 if wrapper.path == "random_opponent" {
                     println!("{:?}", wrapper.content);
                     if let Ok(play_with) = serde_json::from_value::<PlayWithRandomUser>(wrapper.content.clone()) {
-                        match self.db.get_random_user(id) {
+                        match self.db.borrow_mut().get_random_user(id) {
                             Some(u) => {
                                 let mut users = self.users.borrow_mut();
                                 users.get(&(u.ws_id as u32)).unwrap().send(format!("{}",
@@ -285,7 +285,7 @@ impl ws::Handler for ChatHandler {
                             true => {
                                 /* Create a game and start it ! */
                                 let grid = Grid::new();
-                                self.db.insert_game(id, agree.opponent_id as u32, grid);
+                                self.db.borrow_mut().insert_game(id, agree.opponent_id as u32, grid);
                                 self.games_in_p.borrow_mut().length += 1;
                                 return self.out.broadcast(format!("{}",
                                     json!({
@@ -332,7 +332,7 @@ impl ws::Handler for ChatHandler {
                     }
                 }
                 if let Ok(play) = serde_json::from_value::<Play>(wrapper.content.clone()) {
-                    let game = self.db.play_with(id).unwrap();
+                    let game = self.db.borrow_mut().play_with(id).unwrap();
                     let mut grid: Grid = serde_json::from_str(&game.serialize_grid.unwrap()).unwrap();
                     grid.update(play.disc_x as usize, play.disc_y as usize, play.color.clone() as i8);
                     let mut second_player_id = game.id_player1;
@@ -347,7 +347,7 @@ impl ws::Handler for ChatHandler {
                     ) {
                         true => {
                             println!("fin du jeu!");
-                            self.db.delete_game_in_progress(play.game_id);
+                            self.db.borrow_mut().delete_game_in_progress(play.game_id);
                             self.games_in_p.borrow_mut().length -= 1;
                             self.users.borrow_mut().get(&(second_player_id as u32)).unwrap().send(
                                 format!("{}",
@@ -365,7 +365,7 @@ impl ws::Handler for ChatHandler {
                             ))
                         },
                         false => {
-                            self.db.update_grid(play.game_id, &grid);
+                            self.db.borrow_mut().update_grid(play.game_id, &grid);
                             self.users.borrow_mut().get(&(second_player_id as u32)).unwrap().send(
                                 format!("{}",
                                     json!({
@@ -449,16 +449,18 @@ fn main () {
         )
     );
     let _users = Users::new(RefCell::new(HashMap::with_capacity(10_000)));
+    let db = ConnectFourDataBaseRC::new(RefCell::new(
+        ConnectFourDataBaseStruct::new()
+    ));
     if cfg!(debug_assertions) {
-        let mut db = ConnectFourDataBaseStruct::new();
         println!("DEV MODE : refresh database");
-        db.refresh();
+        db.borrow_mut().refresh();
     }
     let _games_in_p = GameIP::new(RefCell::new(GamesInProgres::new()));
     if let Err(error) = ws::listen(format!("{}:{}", ADDR, PORT), |out| {
         ChatHandler {
             out:         out,
-            db:          ConnectFourDataBaseStruct::new(),
+            db:          db.clone(),
             nick:        None,
             message_log: message_log.clone(),
             users:       _users.clone(),
