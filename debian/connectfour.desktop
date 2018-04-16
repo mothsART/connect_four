@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=0.1
+Name=ConnectFour
+Comment=a multiplayer connect four game
+Exec=connectfour
+Icon=/usr/share/applications/connectfour/icon.png
+Terminal=false
+Type=Game
+Categories=Graphics;Illustration;
+Keywords=game;connect four;connectfour;
+Name[fr_FR]=connectfour

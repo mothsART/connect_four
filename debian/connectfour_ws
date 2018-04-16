@@ -1,0 +1,5 @@
+#!/bin/sh
+
+export CONNECTFOUR_DATABASE_URL='/var/games/connectfour/connectfour.db'
+export CONNECTFOUR_LOG='/var/games/connectfour/log'
+/usr/share/bin/connectfour/ws

@@ -5,22 +5,23 @@ extern crate env_logger;
 extern crate serde;
 #[macro_use] extern crate serde_json;
 #[macro_use] extern crate serde_derive;
-extern crate connect_four;
+extern crate connectfour;
 
+use std::io::{Error, ErrorKind};
+use std::env;
 use std::fs::OpenOptions;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::collections::HashMap;
 use serde_json::Value as Json;
-use connect_four::{
+use connectfour::{
     ADDR, PORT,
     ConnectFourDataBaseStruct, ConnectFourDataBase
 };
-use connect_four::grid::{Grid, win};
+use connectfour::grid::{Grid, win};
 
-const SAVE: ws::util::Token = ws::util::Token(1);
-const PING: ws::util::Token = ws::util::Token(2);
-const FILE: &'static str = "message_log";
+const SAVE:      ws::util::Token = ws::util::Token(1);
+const PING:      ws::util::Token = ws::util::Token(2);
 const SAVE_TIME: u64 = 500;
 const PING_TIME: u64 = 10_000;
 
@@ -130,7 +131,7 @@ struct ChatHandler {
     out: ws::Sender,
     db: ConnectFourDataBaseRC,
     nick: Option<String>,
-    message_log: MessageLog,
+    message_log: Option<MessageLog>,
     users: Users,
     games_in_p: GameIP
 }
@@ -142,38 +143,44 @@ impl ws::Handler for ChatHandler {
     fn on_open(&mut self, _: ws::Handshake) -> ws::Result<()> {
         try!(self.out.timeout(SAVE_TIME, SAVE));
         try!(self.out.timeout(PING_TIME, PING));
-        let backlog = self.message_log.borrow();
-        // We take two chunks because one chunk might not be a full 50
-        let mut it = backlog.chunks(50).rev().take(2);
-        let msgs1 = it.next();
-        let msgs2 = it.next();
-        // longwinded reverse
-        if let Some(msgs) = msgs2 {
-            for msg in msgs {
-                if let Some(sent) = msg.sent {
-                    if time::get_time() - time::Timespec::new(sent, 0) < time::Duration::minutes(10) {
-                        try!(self.out.send(format!("{:?}", json!({
-                            "path":     "/message",
-                            "content":  msg.to_message(),
-                            "users_nb": self.db.borrow_mut().count_users()
-                        }))))
+        //let backlog = self.message_log.unwrap().borrow();
+        match self.message_log {
+            Some(ref backlog) => {
+                let b = backlog.borrow();
+                // We take two chunks because one chunk might not be a full 50
+                let mut it = b.chunks(50).rev().take(2);
+                let msgs1 = it.next();
+                let msgs2 = it.next();
+                // longwinded reverse
+                if let Some(msgs) = msgs2 {
+                    for msg in msgs {
+                        if let Some(sent) = msg.sent {
+                            if time::get_time() - time::Timespec::new(sent, 0) < time::Duration::minutes(10) {
+                                try!(self.out.send(format!("{:?}", json!({
+                                    "path":     "/message",
+                                    "content":  msg.to_message(),
+                                    "users_nb": self.db.borrow_mut().count_users()
+                                }))))
+                            }
+                        }
                     }
                 }
-            }
-        }
-        if let Some(msgs) = msgs1 {
-            for msg in msgs {
-                if let Some(sent) = msg.sent {
-                    if  time::get_time() - time::Timespec::new(sent, 0) < time::Duration::minutes(10) {
-                        try!(self.out.send(format!("{:?}", json!({
-                            "path":    "/message",
-                            "content": msg.to_message(),
-                        }))))
+                if let Some(msgs) = msgs1 {
+                    for msg in msgs {
+                        if let Some(sent) = msg.sent {
+                            if  time::get_time() - time::Timespec::new(sent, 0) < time::Duration::minutes(10) {
+                                try!(self.out.send(format!("{:?}", json!({
+                                    "path":    "/message",
+                                    "content": msg.to_message(),
+                                }))))
+                            }
+                        }
                     }
                 }
-            }
+                Ok(())
+            },
+            None => { Ok(()) }
         }
-        Ok(())
     }
 
     fn on_request(&mut self, req: &Request) -> Result<Response> {
@@ -397,7 +404,12 @@ impl ws::Handler for ChatHandler {
                 nick: "system".into(),
                 message: format!("{} has left the chat.", nick),
             };
-            self.message_log.borrow_mut().push(leave_msg.clone().clone().into_log());
+            match self.message_log {
+                Some(ref m) => {
+                    m.borrow_mut().push(leave_msg.clone().clone().into_log());
+                },
+                None => {}
+            }
             if let Err(err) = self.out.broadcast(format!("{}", json!({
                 "path": "/left",
                 "content": leave_msg,
@@ -410,16 +422,35 @@ impl ws::Handler for ChatHandler {
     fn on_timeout(&mut self, tok: ws::util::Token) -> ws::Result<()> {
         match tok {
             SAVE => {
-                let mut file = try!(OpenOptions::new().write(true).open(FILE));
-                if let Err(err) = serde_json::to_writer_pretty::<_, Vec<LogMessage>>(
-                    &mut file,
-                    self.message_log.borrow().as_ref())
-                {
-                   Ok(error!("{:?}", err))
-                } else {
-                    self.out.timeout(SAVE_TIME, SAVE)
+                let file_path = env::var("CONNECTFOUR_LOG");
+                let file;
+                match file_path {
+                    Ok(f) => {
+                        file = OpenOptions::new().write(true).open(f);
+                    },
+                    Err(_e) => {
+                        file = Err(Error::new(ErrorKind::Other, "Log file not found."));
+                    }
                 }
-            }
+                match file {
+                    Ok(ref f) => {
+                        match self.message_log {
+                            Some(ref m) => {
+                                if let Err(err) = serde_json::to_writer_pretty::<_, Vec<LogMessage>>(
+                                    f,
+                                    m.borrow_mut().as_ref())
+                                {
+                                    Ok(error!("{:?}", err))
+                                } else {
+                                    self.out.timeout(SAVE_TIME, SAVE)
+                                }
+                            },
+                            None => { Ok(()) }
+                        }
+                    },
+                    Err(_e) => { Ok(()) }
+                }
+            },
             PING => {
                 try!(self.out.ping(Vec::new()));
                 self.out.timeout(PING_TIME, PING)
@@ -432,22 +463,37 @@ impl ws::Handler for ChatHandler {
 fn main () {
     // Setup logging
     env_logger::init().unwrap();
-    let mut file = OpenOptions::new()
-        .read(true)
-        .write(true)
-        .create(true)
-        .open(FILE)
-        .expect("Unable to open message log.");
-
-    let message_log = MessageLog::new(
-        RefCell::new(
-            serde_json::from_reader(
-                &mut file,
-            ).unwrap_or(
-                Vec::with_capacity(10_000)
-            )
-        )
-    );
+    let file_path = env::var("CONNECTFOUR_LOG");
+    let file;
+    match file_path {
+        Ok(f) => {
+			println!("Log file : {}", f);
+            file = OpenOptions::new()
+                   .read(true)
+                   .write(true)
+                   .create(true)
+                   .open(f);
+        },
+        Err(_e) => {
+			println!("Log file not found.");
+            file = Err(Error::new(ErrorKind::Other, "Log file not found."));
+        }
+    }
+    let message_log = None;
+    match file {
+        Ok(mut f) => {
+            MessageLog::new(
+                RefCell::new(
+                    serde_json::from_reader(
+                        &mut f,
+                    ).unwrap_or(
+                        Vec::with_capacity(10_000)
+                    )
+                )
+            );
+        },
+        Err(_e) => {}
+    }
     let _users = Users::new(RefCell::new(HashMap::with_capacity(10_000)));
     let db = ConnectFourDataBaseRC::new(RefCell::new(
         ConnectFourDataBaseStruct::new()

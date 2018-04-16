@@ -1,0 +1,4 @@
+#!/bin/sh
+
+export CONNECTFOUR_DATABASE_URL='/var/games/connectfour/connectfour.db'
+./refresh

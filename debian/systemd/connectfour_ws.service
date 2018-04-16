@@ -1,0 +1,17 @@
+[Unit]
+Description=Connect Four : a little game server (websocket server)
+# When systemd stops or restarts the app.service, the action is propagated to this unit
+PartOf=app.service
+# Start this unit after the app.service start
+After=app.service
+
+[Service]
+# Pretend that the component is running
+ExecStart=/usr/bin/connectfour_ws
+# refresh database when this service is stoping
+ExecStop=/usr/share/bin/connectfour/connectfour_refresh
+# Restart the service on non-zero exit code when terminated by a signal other than SIGHUP, SIGINT, SIGTERM or SIGPIPE
+Restart=on-failure
+
+[Install]
+WantedBy=connectfour.service

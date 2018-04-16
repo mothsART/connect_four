@@ -1,33 +1,27 @@
 [package]
-name = "connect_four"
+name = "connectfour"
 version = "0.1.0"
 authors = ["Ferry Jérémie <ferryjeremie@free.fr>"]
 
 [dependencies]
-cairo-rs = "^0"
-gdk      = "^0"
-rocket = "0.3.0"
-rocket_codegen = "0.3.0"
-yansi = "0.3.4"
+rouille = "2.1.0"
+#cairo-rs = "^0"
+#gdk      = "^0"
 serde           = "1.0"
 serde_derive    = "1.0"
 env_logger      = "0.4"
-#ws              = "0.7.6"
+ws              = "0.7"
 log = "*"
 time = "*"
 serde_json = "*"
-diesel = { version = "1.1.1", features = ["postgres", "sqlite"] }
+diesel = { version = "1.2.2", features = ["sqlite"] }
 dotenv = "0.10.0"
 uuid = { version = "0.5", features = ["v4"] }
 
-[dependencies.rocket_contrib]
-version = "0.3.0"
-default-features = false
+#[dependencies.rocket_contrib]
+#version = "0.3.1"
+#default-features = false
 
-[dependencies.gtk]
-version = "0.3.0"
-features = ["v3_10"]
-
-[dependencies.ws]
-git = "https://github.com/housleyjk/ws-rs"
-rev = "2b705d6745e36747f250c8c93d161f30e4fab02c"
+#[dependencies.gtk]
+#version = "0.3.0"
+#features = ["v3_10"]

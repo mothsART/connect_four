@@ -1,6 +1,6 @@
-extern crate connect_four;
+extern crate connectfour;
 
-use connect_four::{ConnectFourDataBaseStruct, ConnectFourDataBase};
+use connectfour::{ConnectFourDataBaseStruct, ConnectFourDataBase};
 
 fn main () {
     let mut db = ConnectFourDataBaseStruct::new();
