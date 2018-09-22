@@ -467,7 +467,7 @@ fn main () {
     let file;
     match file_path {
         Ok(f) => {
-			println!("Log file : {}", f);
+            println!("Log file : {}", f);
             file = OpenOptions::new()
                    .read(true)
                    .write(true)
@@ -475,7 +475,7 @@ fn main () {
                    .open(f);
         },
         Err(_e) => {
-			println!("Log file not found.");
+            println!("Log file not found.");
             file = Err(Error::new(ErrorKind::Other, "Log file not found."));
         }
     }
