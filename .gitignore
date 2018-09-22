@@ -6,3 +6,8 @@ static/package-lock.json
 static/public
 static/node_modules
 static/package-lock.json
+
+.cargo/
+debian/vendor/
+debian/vendor.tar.gz
+debian/.debhelper/
