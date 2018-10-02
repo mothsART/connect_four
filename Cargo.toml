@@ -4,6 +4,7 @@ version = "0.1.0"
 authors = ["Ferry Jérémie <ferryjeremie@free.fr>"]
 
 [dependencies]
+toml = "0.4"
 rouille = "2.1.0"
 #cairo-rs = "^0"
 #gdk      = "^0"

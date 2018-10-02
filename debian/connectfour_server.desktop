@@ -1,11 +1,11 @@
 [Desktop Entry]
 Version=0.1
-Name=Connectfour
+Name=Connectfour_server
 Comment=A multiplayer connect four game.
 Exec=pkexec sh /usr/share/bin/connectfour/connectfour_server
-Icon=/usr/share/applications/connectfour/icon.png
+Icon=/usr/share/applications/connectfour/icon_server.png
 Terminal=false
 Type=Application
 Categories=Games
 Keywords=game;connect;four;
-Name[fr_FR]=connectfour
+Name[fr_FR]=connectfour_server

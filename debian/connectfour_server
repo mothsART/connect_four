@@ -1,0 +1,11 @@
+cd /etc/systemd/system
+
+systemctl daemon-reload
+
+systemctl enable connectfour.service 
+systemctl enable connectfour_web.service
+systemctl enable connectfour_ws.service
+
+systemctl start connectfour.service 
+systemctl start connectfour_web.service
+systemctl start connectfour_ws.service

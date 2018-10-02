@@ -1,10 +1,11 @@
 debian/connectfour_web                  usr/bin
 debian/connectfour_ws                   usr/bin
 
+debian/connectfour_server               usr/share/bin/connectfour
 debian/connectfour_refresh              usr/share/bin/connectfour
-target/release/connectfour              usr/share/bin/connectfour
 target/release/ws                       usr/share/bin/connectfour
 target/release/refresh                  usr/share/bin/connectfour
+target/release/connectfour              usr/share/bin/connectfour
 
 debian/systemd/connectfour.service      etc/systemd/system
 debian/systemd/connectfour_web.service  etc/systemd/system
@@ -17,11 +18,14 @@ static/dist/app.js                      usr/share/bin/connectfour/static/dist
 static/dist/app.js.map                  usr/share/bin/connectfour/static/dist
 
 debian/connectfour.desktop              usr/share/applications
+debian/connectfour_server.desktop       usr/share/applications
 icon.png                                usr/share/applications/connectfour
+icon_server.png                         usr/share/applications/connectfour
 
 README.md                               usr/share/doc/connectfour
 
 LICENSE                                 usr/share/licenses/connectfour
 
+connectfour.toml                        etc/connectfour
 connectfour.db                          var/games/connectfour
 log                                     var/games/connectfour

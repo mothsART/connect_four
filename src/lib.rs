@@ -11,6 +11,7 @@ extern crate uuid;
 pub mod schema;
 pub mod models;
 pub mod grid;
+pub mod conf;
 
 use diesel::{insert_into, update, delete};
 use diesel::dsl::*;
