@@ -1,6 +1,6 @@
 # Connect Four
 
-[![Build Status](https://travis-ci.org/mothsART/connectfour.png?branch=master)](https://travis-ci.org/mothsART/connectfour)
+[![Build Status](https://travis-ci.org/mothsART/connect_four.png?branch=master)](https://travis-ci.org/mothsART/connect_four)
 
 [![LICENSE](https://img.shields.io/badge/license-BSD-blue.svg)](LICENSE)
 
