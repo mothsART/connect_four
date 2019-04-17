@@ -3,6 +3,15 @@ rust:
   - nightly
   - beta
   - stable
+sudo: true
+-env:
+  global:
+    - LD_LIBRARY_PATH=/usr/local/lib
+addons:
+  apt:
+    packages:
+      - libgtk-3-dev
+      - libmount-dev
 script:
   - rustc --version
   - cargo build
