@@ -1,8 +1,19 @@
+dist: xenial
 language: rust
-rust:
-  - nightly
-  - beta
-  - stable
+matrix:
+  include:
+    - os: linux
+      env: TARGET=armv7-unknown-linux-gnueabihf
+      rust: stable
+    - os: linux
+      env: TARGET=x86_64-apple-darwin
+      rust: stable
+    - os: linux
+      env: TARGET=armv7-unknown-linux-gnueabihf
+      rust: nightly
+    - os: linux
+      env: TARGET=x86_64-apple-darwin
+      rust: nightly
 sudo: true
 -env:
   global:
