@@ -1,0 +1,11 @@
+language: rust
+rust:
+  - nightly
+  - beta
+  - stable
+script:
+  - rustc --version
+  - cargo build
+    # in order to also check tests and non-default crate features, use
+  #- cargo clippy --all-targets --all-features -- -D warnings
+  - cargo test

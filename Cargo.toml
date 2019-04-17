@@ -6,13 +6,16 @@ authors = ["Ferry Jérémie <ferryjeremie@free.fr>"]
 [dependencies]
 toml = "0.4"
 rouille = "2.1.0"
-serde           = "1.0"
-serde_derive    = "1.0"
-env_logger      = "0.4"
-ws              = "0.7"
-log = "*"
-time = "*"
-serde_json = "*"
+serde = "1.0"
+serde_derive = "1.0"
+env_logger = "0.4"
+ws = "0.7"
+log = "0.3.9"
+time = "0.1.42"
+serde_json = "1.0.39"
 diesel = { version = "1.2.2", features = ["sqlite"] }
 dotenv = "0.10.0"
 uuid = { version = "0.5", features = ["v4"] }
+gtk = "0.6.0"
+gdk = "0.10.0"
+cairo-rs = { version = "^0", features = ["png"] }
