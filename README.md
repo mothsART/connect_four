@@ -1,5 +1,7 @@
 # Connect Four
 
+[![Build Status](https://travis-ci.org/mothsART/connectfour.png?branch=master)](https://travis-ci.org/mothsART/connectfour)
+
 [![LICENSE](https://img.shields.io/badge/license-BSD-blue.svg)](LICENSE)
 
 a websocket Game Prototype
